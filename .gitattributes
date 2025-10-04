@@ -1,0 +1,15 @@
+* text=auto
+*.blade.php eol=lf
+*.js eol=lf
+*.jsx eol=lf
+*.css eol=lf
+*.json eol=lf
+*.sql eol=lf
+*.png binary
+*.jpg binary
+*.pdf binary
+
+
+/.github export-ignore
+CHANGELOG.md export-ignore
+.styleci.yml export-ignore
