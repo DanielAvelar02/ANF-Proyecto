@@ -17,8 +17,17 @@
         "vite": "^7.1.9"
     },
     "dependencies": {
+        "@ant-design/icons": "^6.1.0",
+        "@emotion/react": "^11.14.0",
+        "@emotion/styled": "^11.14.1",
+        "@fontsource/roboto": "^5.2.8",
         "@inertiajs/react": "^2.2.6",
+        "@mui/icons-material": "^7.3.4",
+        "@mui/material": "^7.3.4",
+        "@mui/styled-engine-sc": "^7.3.3",
+        "antd": "^5.27.4",
         "react": "^19.2.0",
-        "react-dom": "^19.2.0"
+        "react-dom": "^19.2.0",
+        "styled-components": "^6.1.19"
     }
 }

@@ -13,6 +13,7 @@ return [
     |
     */
 
+    // Valores por defecto para el guardia y el broker de contraseñas
     'defaults' => [
         'guard' => env('AUTH_GUARD', 'web'),
         'passwords' => env('AUTH_PASSWORD_BROKER', 'users'),
@@ -38,7 +39,7 @@ return [
     'guards' => [
         'web' => [
             'driver' => 'session',
-            'provider' => 'users',
+            'provider' => 'usuarios',
         ],
     ],
 
@@ -59,10 +60,11 @@ return [
     |
     */
 
+    // Aquí defines el proveedor de usuarios personalizado 'usuarios'
     'providers' => [
-        'users' => [
-            'driver' => 'eloquent',
-            'model' => env('AUTH_MODEL', App\Models\User::class),
+        'usuarios' => [
+            'driver' => 'usuarios',
+            'model' => App\Models\Usuario::class, 
         ],
 
         // 'users' => [

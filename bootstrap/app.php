@@ -11,11 +11,22 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        // Alias opcionales tuyos
         $middleware->alias([
-            'session.auth' => \App\Http\Middleware\EnsureSessionAuth::class,
+            // Asegura que el usuario esté autenticado mediante la sesión
+            'session.auth' => \App\Http\Middleware\EnsureSessionAuth::class, // si la clase existe
+        ]);
+
+        // 👇 Muy importante: agrega el middleware de Inertia al grupo web
+        $middleware->web(append: [
+            \App\Http\Middleware\HandleInertiaRequests::class,
+            \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class, // opcional y recomendado
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
-    })->create();
+    })
+    ->withProviders([
+        App\Providers\AuthServiceProvider::class,
+    ])
+    ->create();

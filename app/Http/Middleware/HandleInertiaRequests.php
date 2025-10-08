@@ -5,39 +5,38 @@ namespace App\Http\Middleware;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
+// Middleware de Inertia.js para compartir datos comunes con las vistas
 class HandleInertiaRequests extends Middleware
 {
-    /**
-     * The root template that's loaded on the first page visit.
-     *
-     * @see https://inertiajs.com/server-side-setup#root-template
-     *
-     * @var string
-     */
-    protected $rootView = 'app';
+    protected $rootView = 'app'; // tu layout Blade: resources/views/app.blade.php
 
-    /**
-     * Determines the current asset version.
-     *
-     * @see https://inertiajs.com/asset-versioning
-     */
     public function version(Request $request): ?string
     {
         return parent::version($request);
     }
 
-    /**
-     * Define the props that are shared by default.
-     *
-     * @see https://inertiajs.com/shared-data
-     *
-     * @return array<string, mixed>
-     */
     public function share(Request $request): array
     {
-        return [
-            ...parent::share($request),
-            //
-        ];
+        return array_merge(parent::share($request), [
+            // Comparte errores de validación (Inertia lo hace aquí)
+            'errors' => function () use ($request) {
+                return $request->session()->get('errors')
+                    ? $request->session()->get('errors')->getBag('default')->toArray()
+                    : (object) [];
+            },
+
+            // Mensajes flash (si los usas)
+            'flash' => [
+                'warning' => fn () => $request->session()->get('warning'),
+                'success' => fn () => $request->session()->get('success'),
+            ],
+            // Datos del usuario autenticado para usar en las vistas
+            'auth' => [
+                'user' => fn () => $request->user() ? [
+                    'id' => $request->user()->getAttribute('IdUsuario'),
+                    'nombre' => $request->user()->getAttribute('NomUsuario'),
+                ] : null,
+            ],
+        ]);
     }
 }

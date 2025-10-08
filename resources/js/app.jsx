@@ -1,16 +1,22 @@
-import { createInertiaApp } from '@inertiajs/react'
+import React from 'react'
 import { createRoot } from 'react-dom/client'
-
-// (opcional) ver barra de progreso al navegar
-import { InertiaProgress } from '@inertiajs/progress'
-InertiaProgress.init()
+import { App as AntdApp, ConfigProvider, theme } from 'antd'
+import esES from 'antd/locale/es_ES'
+import 'antd/dist/reset.css'
+import { createInertiaApp } from '@inertiajs/react'
 
 createInertiaApp({
-    resolve: (name) => {
+    resolve: name => {
         const pages = import.meta.glob('./Pages/**/*.jsx', { eager: true })
         return pages[`./Pages/${name}.jsx`]
     },
     setup({ el, App, props }) {
-        createRoot(el).render(<App {...props} />)
+        createRoot(el).render(
+            <ConfigProvider locale={esES} theme={{ algorithm: theme.defaultAlgorithm }}>
+                <AntdApp>
+                    <App {...props} />
+                </AntdApp>
+            </ConfigProvider>
+        )
     },
 })

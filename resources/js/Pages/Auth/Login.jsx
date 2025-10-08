@@ -1,106 +1,72 @@
-import { useForm, Head } from '@inertiajs/react'
+// resources/js/Pages/Auth/Login.jsx
+import React from 'react'
+import { Head, useForm, usePage } from '@inertiajs/react'
+import { Form, Input, Button, Typography, Card, Alert, Space } from 'antd'
+import { LockOutlined, UserOutlined } from '@ant-design/icons'
 
 export default function Login() {
-    const { data, setData, post, processing, errors } = useForm({ nom: '', clave: '' })
-    const submit = e => { e.preventDefault(); post('/login') }
+    const { errors, flash } = usePage().props || {}
 
-    const containerStyle = {
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'linear-gradient(180deg,#f6f8fb,#ffffff)'
+    const { data, setData, post, processing, reset, clearErrors } = useForm({
+        usuario: '',
+        contrasena: '',
+    })
+
+    const handlePin = (e) => {
+        const value = e.target.value.replace(/\D/g, '').slice(0, 5)
+        setData('contrasena', value)
+        if (errors?.contrasena) clearErrors('contrasena')
     }
 
-    const cardStyle = {
-        width: '100%',
-        maxWidth: 480,
-        background: '#fff',
-        borderRadius: 12,
-        boxShadow: '0 6px 18px rgba(20,24,40,0.08)',
-        padding: '2rem',
-        fontFamily: 'Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial'
+    const handleUsuario = (e) => {
+        setData('usuario', e.target.value)
+        if (errors?.usuario) clearErrors('usuario')
     }
 
-    const titleStyle = { margin: 0, marginBottom: 10, fontSize: 20, letterSpacing: '-0.01em' }
-    const subtitleStyle = { marginTop: 0, marginBottom: 18, color: '#6b7280', fontSize: 13 }
-
-    const labelStyle = { display: 'block', fontSize: 13, marginBottom: 6, color: '#374151' }
-
-    const inputStyle = {
-        width: '100%',
-        padding: '10px 12px',
-        borderRadius: 8,
-        border: '1px solid #e6e9ee',
-        marginBottom: 12,
-        fontSize: 14,
-        outline: 'none',
-        boxSizing: 'border-box'
+    const onFinish = () => {
+        post('/login', {
+            onFinish: () => reset('contrasena'),
+            onError: () => {
+                // Forzar re-render de errores si algo los oculta
+                // (AntD ya los muestra en help de Form.Item con errors.*)
+            },
+            onSuccess: () => {
+                // Inertia sigue el redirect del backend automáticamente
+            }
+        })
     }
-
-    const buttonStyle = {
-        width: '100%',
-        padding: '10px 12px',
-        borderRadius: 8,
-        border: 'none',
-        background: '#111827',
-        color: '#fff',
-        fontSize: 15,
-        cursor: 'pointer'
-    }
-
-    const errorStyle = { color: '#b91c1c', fontSize: 13, marginTop: 6, marginBottom: 6 }
 
     return (
         <>
-            <Head title="Login" />
-
-            <div style={containerStyle}>
-                <div style={cardStyle}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-                        <div style={{ width: 44, height: 44, borderRadius: 10, background: '#111827', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700 }}>ANF</div>
-                        <div>
-                            <h2 style={titleStyle}>ANF — Iniciar sesión</h2>
-                            <p style={subtitleStyle}>Accede con tu usuario y clave (5 caracteres)</p>
+            <Head title="Iniciar sesión" />
+            <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(180deg,#f6f8fb,#ffffff)', padding: 16 }}>
+                <Card style={{ width: 420, borderRadius: 16, boxShadow: '0 8px 24px rgba(0,0,0,.06)' }}>
+                    <Space direction="vertical" size={6} style={{ width: '100%', marginBottom: 8 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                            <div style={{ width: 44, height: 44, borderRadius: 10, background: '#111827', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700 }}>ANF</div>
+                            <div>
+                                <Typography.Title level={4} style={{ margin: 0 }}>Sistema de Análisis Financiero</Typography.Title>
+                                <Typography.Text type="secondary">Accede con tu usuario y clave (5 dígitos)</Typography.Text>
+                            </div>
                         </div>
-                    </div>
+                        {flash?.warning && <Alert type="warning" showIcon message={flash.warning} />}
+                        {errors?.auth && <Alert type="error" showIcon message={errors.auth} />}
+                    </Space>
 
-                    <form onSubmit={submit} aria-label="formulario de inicio de sesión">
-                        <label htmlFor="nom" style={labelStyle}>Usuario</label>
-                        <input
-                            id="nom"
-                            name="nom"
-                            autoComplete="username"
-                            style={inputStyle}
-                            value={data.nom}
-                            onChange={e => setData('nom', e.target.value)}
-                            required
-                            placeholder="Tu usuario"
-                        />
-                        {errors.nom && <div style={errorStyle}>{errors.nom}</div>}
+                    <Form layout="vertical" onFinish={onFinish} autoComplete="off">
+                        <Form.Item label="Usuario" validateStatus={errors?.usuario ? 'error' : ''} help={errors?.usuario}>
+                            <Input size="large" prefix={<UserOutlined />} placeholder="Tu usuario" value={data.usuario} onChange={handleUsuario} autoComplete="username" allowClear />
+                        </Form.Item>
 
-                        <label htmlFor="clave" style={labelStyle}>Clave</label>
-                        <input
-                            id="clave"
-                            name="clave"
-                            type="password"
-                            maxLength={5}
-                            autoComplete="current-password"
-                            style={inputStyle}
-                            value={data.clave}
-                            onChange={e => setData('clave', e.target.value)}
-                            required
-                            placeholder="•••••"
-                        />
-                        {errors.clave && <div style={errorStyle}>{errors.clave}</div>}
+                        <Form.Item label="Clave (5 dígitos)" validateStatus={errors?.contrasena ? 'error' : ''} help={errors?.contrasena}>
+                            <Input.Password size="large" prefix={<LockOutlined />} placeholder="•••••" value={data.contrasena} onChange={handlePin} autoComplete="current-password" maxLength={5} inputMode="numeric" />
+                        </Form.Item>
 
-                        {errors.nom && !errors.nom.includes('Usuario') && <div style={errorStyle}>{errors.nom}</div>}
-
-                        <button disabled={processing} type="submit" style={{ ...buttonStyle, marginTop: 8 }}>
-                            {processing ? 'Verificando...' : 'Entrar'}
-                        </button>
-                    </form>
-                </div>
+                        <Button type="primary" htmlType="submit" size="large" block loading={processing}>
+                            {processing ? 'Verificando…' : 'Entrar'}
+                        </Button>
+                    </Form>
+                </Card>
             </div>
         </>
     )
