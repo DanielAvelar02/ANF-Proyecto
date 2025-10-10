@@ -1,6 +1,7 @@
 <?php
 
-use App\Http\Controllers\AuthController;
+use App\Http\Controllers\AuthController; // Controlador de autenticación - Avelar
+use App\Http\Controllers\ProyeccionesController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', fn () => redirect('/login'));
@@ -11,5 +12,9 @@ Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth');
 
 Route::middleware('auth')->group(function () {
     Route::get('/dashboard', fn () => inertia('Dashboard/Index'))->name('dashboard');
-    // Si usas Blade: Route::get('/dashboard', fn() => view('dashboard'));
+
+    // Rutas para Proyecciones
+    Route::get('/proyecciones', [ProyeccionesController::class, 'index'])->name('proyecciones.index');
+    Route::post('/proyecciones/calcular', [ProyeccionesController::class, 'calcular'])->name('proyecciones.calcular');
+    Route::post('/proyecciones/importar-excel', [ProyeccionesController::class, 'importarExcel'])->name('proyecciones.importar');
 });

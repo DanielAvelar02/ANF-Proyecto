@@ -1,0 +1,40 @@
+import React from 'react';
+import { Table, InputNumber } from 'antd';
+
+const meses = ['Mes 1', 'Mes 2', 'Mes 3', 'Mes 4', 'Mes 5', 'Mes 6', 'Mes 7', 'Mes 8', 'Mes 9', 'Mes 10', 'Mes 11', 'Mes 12'];
+
+// Componente para mostrar y editar las ventas por mes
+// Ahora acepta `start` (índice inicial) y `count` (cantidad de meses a mostrar)
+export default function TablaMeses({ valores, onChange, start = 0, count = 12 }) {
+    // Limitar rango
+    const end = Math.min(start + count, meses.length);
+    const slice = Array.from({ length: end - start }, (_, idx) => {
+        const i = start + idx;
+        return { key: i, mes: meses[i], valor: valores[i] };
+    });
+
+    const columns = [
+        // Igualamos anchos: con tableLayout: 'fixed' podemos usar porcentajes
+        { title: 'Mes', dataIndex: 'mes', width: '50%' },
+        {
+            title: 'Ventas',
+            dataIndex: 'valor',
+            width: '50%',
+            render: (_, record) => (
+                <InputNumber
+                    min={0}
+                    value={record.valor}
+                    style={{ width: '100%' }}
+                    onChange={(val) => {
+                        const next = [...valores];
+                        next[record.key] = val;
+                        onChange(next);
+                    }}
+                />
+            ),
+        },
+    ];
+
+    // Usamos tableLayout fixed para que los anchos en porcentajes se respeten
+    return <Table size="small" pagination={false} columns={columns} dataSource={slice} style={{ tableLayout: 'fixed' }} />;
+}

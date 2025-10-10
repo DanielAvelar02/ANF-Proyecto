@@ -17,6 +17,9 @@ class HandleInertiaRequests extends Middleware
 
     public function share(Request $request): array
     {
+
+        $user = $request->user(); // Usuario autenticado
+
         return array_merge(parent::share($request), [
             // Comparte errores de validación (Inertia lo hace aquí)
             'errors' => function () use ($request) {
@@ -32,9 +35,9 @@ class HandleInertiaRequests extends Middleware
             ],
             // Datos del usuario autenticado para usar en las vistas
             'auth' => [
-                'user' => fn () => $request->user() ? [
-                    'id' => $request->user()->getAttribute('IdUsuario'),
-                    'nombre' => $request->user()->getAttribute('NomUsuario'),
+                'user' => $user ? [
+                    'id' => $user->getKey(),                            // IdUsuario
+                    'nom' => $user->getAttribute('NomUsuario') ?? null,  // Nombre visible
                 ] : null,
             ],
         ]);

@@ -18,10 +18,11 @@
     },
     "dependencies": {
         "@ant-design/icons": "^6.1.0",
+        "@ant-design/plots": "^2.6.5",
         "@emotion/react": "^11.14.0",
         "@emotion/styled": "^11.14.1",
         "@fontsource/roboto": "^5.2.8",
-        "@inertiajs/react": "^2.2.6",
+        "@inertiajs/react": "^2.2.8",
         "@mui/icons-material": "^7.3.4",
         "@mui/material": "^7.3.4",
         "@mui/styled-engine-sc": "^7.3.3",
