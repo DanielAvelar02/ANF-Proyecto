@@ -10,7 +10,7 @@ import {
     FundProjectionScreenOutlined,
     HomeOutlined,
 } from '@ant-design/icons'
-import { Breadcrumb, Layout, Menu, theme, Button, Space, Typography } from 'antd'
+import { Layout, Menu, theme, Button, Space, Typography, ConfigProvider, App as AntApp } from 'antd'
 
 // Extraer componentes de Layout y Typography de Ant Design
 const { Header, Content, Footer, Sider } = Layout
@@ -47,7 +47,7 @@ const items = [
 export default function AppLayout({ children, title = 'ANF' }) {
     // Estado para colapsar el menú lateral
     const [collapsed, setCollapsed] = useState(true)
-    
+
     // Extraer datos del tema de Ant Design
     const {
         token: { colorBgContainer, borderRadiusLG },
@@ -72,6 +72,7 @@ export default function AppLayout({ children, title = 'ANF' }) {
                 </Sider>
 
                 <Layout>
+                    {/* Header con título y botón de logout */}
                     <Header
                         style={{
                             padding: '0 16px',
@@ -82,9 +83,11 @@ export default function AppLayout({ children, title = 'ANF' }) {
                             gap: 16,
                         }}
                     >
+                        {/* Título o logo del sistema */}
                         <Text strong style={{ fontSize: 18 }}>Sistema de Analisis Financiero</Text>
 
                         <Space size={12} align="center">
+                            {/* Mostrar el nombre del usuario y botón de logout */}
                             <Text><UserOutlined /> {userName}</Text>
                             <Button icon={<LogoutOutlined />} onClick={doLogout} danger>
                                 Cerrar Sesión
@@ -92,8 +95,11 @@ export default function AppLayout({ children, title = 'ANF' }) {
                         </Space>
                     </Header>
 
-                    <Content style={{ margin: '0 16px' }}>
+                    {/* Contenido principal de la página */}
+                    <Content style={{ margin: '0 15px' }}>
+                        {/* Contenedor del contenido */}
                         <div
+                            /* Estilos para el contenedor del contenido */
                             style={{
                                 padding: 24,
                                 minHeight: 360,
@@ -101,10 +107,18 @@ export default function AppLayout({ children, title = 'ANF' }) {
                                 borderRadius: borderRadiusLG,
                             }}
                         >
-                            {children}
+                            {/* Proveer el tema de Ant Design a toda la aplicación */}
+                            <ConfigProvider theme={{ algorithm: theme.defaultAlgorithm }}>
+                                {/* Usar el contexto de la aplicación para mensajes, modales, etc. */}
+                                <AntApp>
+                                    {/* Renderizar el contenido de la página aquí */}
+                                    {children}
+                                </AntApp>
+                            </ConfigProvider>
                         </div>
                     </Content>
 
+                    {/* Pie de página */}
                     <Footer style={{ textAlign: 'center' }}>
                         Sistema de Analisis Financiero ©{new Date().getFullYear()} Created by Equipo #
                     </Footer>

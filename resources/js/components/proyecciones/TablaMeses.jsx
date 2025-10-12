@@ -22,9 +22,9 @@ export default function TablaMeses({ valores, onChange, start = 0, count = 12 })
             width: '50%',
             render: (_, record) => (
                 <InputNumber
+                    size='small'
                     min={0}
                     value={record.valor}
-                    style={{ width: '100%' }}
                     onChange={(val) => {
                         const next = [...valores];
                         next[record.key] = val;
