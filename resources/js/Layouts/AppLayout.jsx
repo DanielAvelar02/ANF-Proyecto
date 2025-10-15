@@ -8,6 +8,7 @@ import {
     UserOutlined,
     LogoutOutlined,
     FundProjectionScreenOutlined,
+    ApartmentOutlined,
     HomeOutlined,
 } from '@ant-design/icons'
 import { Layout, Menu, theme, Button, Space, Typography, ConfigProvider, App as AntApp } from 'antd'
@@ -40,7 +41,12 @@ const items = [
         getItem('Alex', '6'),
     ]),
     getItem('Team', 'sub2', <TeamOutlined />, [getItem('Team 1', '7'), getItem('Team 2', '8')]),
+    //Empresa
     getItem('Files', '9', <FileOutlined />),
+    {
+        ...getItem('Tipos de Empresa', '4', <ApartmentOutlined />),
+        onClick: () => router.visit('/tipos-empresa'),
+    },
 ]
 
 // Componente principal del layout, que envuelve las páginas

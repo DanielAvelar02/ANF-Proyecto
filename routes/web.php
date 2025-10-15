@@ -2,7 +2,9 @@
 
 use App\Http\Controllers\AuthController; // Controlador de autenticación - Avelar
 use App\Http\Controllers\ProyeccionesController;
+use App\Http\Controllers\TipoEmpresaController; // Controlador de Tipos de Empresa
 use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
 
 Route::get('/', fn () => redirect('/login'));
 
@@ -17,4 +19,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/proyecciones', [ProyeccionesController::class, 'index'])->name('proyecciones.index');
     Route::post('/proyecciones/calcular', [ProyeccionesController::class, 'calcular'])->name('proyecciones.calcular');
     Route::post('/proyecciones/importar-excel', [ProyeccionesController::class, 'importarExcel'])->name('proyecciones.importar');
+
+    //Rutas Ratios
+    Route::resource('/tipos-empresa', TipoEmpresaController::class);
+
 });

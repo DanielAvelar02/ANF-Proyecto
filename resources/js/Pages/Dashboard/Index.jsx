@@ -14,7 +14,7 @@ export default function Index() {
             <div>
                 <Text strong style={{ fontSize: 18 }}>Bienvenido al Dashboard</Text>
                 <div style={{ marginTop: 12 }}>
-                    <p>Habemus Dashboard! David te amo</p>
+                    <p>MierDashboard! David te amo</p>
                     <Button type="default">Acción</Button>
                 </div>
             </div>
