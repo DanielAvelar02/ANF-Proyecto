@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 // BACKEND: Importamos 'router' de Inertia para hacer peticiones al backend.
-import { Head, router } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 import { Breadcrumb, Button, Space, Table, Typography, Modal, Form, Input, Select, App as AntApp } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import AppLayout from '@/Layouts/AppLayout';
@@ -107,7 +107,9 @@ export default function EmpresasIndex() {
       align: 'right',
       render: (_, record) => (
         <Space>
-            <Button>Gestionar Estados Financieros</Button>
+            <Link href={`/empresas/${record.id}/estados-financieros`}>
+                <Button>Gestionar Estados Financieros</Button>
+            </Link>
             <Button onClick={() => abrirModalParaEditar(record)}>Editar</Button>
             <Button danger onClick={() => handleEliminar(record)}>Borrar</Button>
         </Space>
