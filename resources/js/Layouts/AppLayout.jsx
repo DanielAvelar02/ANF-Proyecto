@@ -9,6 +9,7 @@ import {
     LogoutOutlined,
     FundProjectionScreenOutlined,
     ApartmentOutlined,
+    BarChartOutlined,
     HomeOutlined,
 } from '@ant-design/icons'
 import { Layout, Menu, theme, Button, Space, Typography, ConfigProvider, App as AntApp } from 'antd'
@@ -33,16 +34,6 @@ const items = [
         ...getItem('Proyeccion Ventas', 'proyecciones', <FundProjectionScreenOutlined />),
         onClick: () => router.visit('/proyecciones'),
     },
-    getItem('Opciones', 'opciones', <UserOutlined />, [
-        getItem('Tom', 'opciones:tom'),
-        getItem('Bill', 'opciones:bill'),
-        getItem('Alex', 'opciones:alex'),
-    ]),
-    getItem('Team', 'team', <TeamOutlined />, [
-        getItem('Team 1', 'team:1'),
-        getItem('Team 2', 'team:2'),
-    ]),
-    getItem('Files', 'files', <FileOutlined />),
 
     // Empresas como principal con "Tipos de Empresa" como subitem
     getItem('Empresas', 'empresas', <ApartmentOutlined />, [
@@ -55,6 +46,11 @@ const items = [
             onClick: () => router.visit('/tipos-empresa'),
         },
     ]),
+    
+    {
+        ...getItem('Análisis Ratios', 'Ratios', <BarChartOutlined />),
+        onClick: () => router.visit('/analisis-ratios'),
+    },
 ]
 
 // Componente principal del layout, que envuelve las páginas

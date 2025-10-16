@@ -1,6 +1,3 @@
-// resources/js/Pages/EstadosFinancieros/Index.jsx
-
-// --- Importaciones ---
 import React, { useState } from 'react';
 // BACKEND: Importamos 'Link' para navegar entre páginas de Inertia.
 import { Head, Link } from '@inertiajs/react';

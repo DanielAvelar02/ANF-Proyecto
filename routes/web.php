@@ -5,6 +5,7 @@ use App\Http\Controllers\ProyeccionesController;
 use App\Http\Controllers\TipoEmpresaController; // Controlador de Tipos de Empresa
 use App\Http\Controllers\EmpresaController; // Controlador de Empresas
 use App\Http\Controllers\EstadoFinancieroController; // Controlador de Estados Financieros
+use App\Http\Controllers\AnalisisRatiosController; // Controlador de Análisis de Ratios
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -27,4 +28,5 @@ Route::middleware('auth')->group(function () {
     Route::get('/empresas/{empresa}/estados-financieros', [EstadoFinancieroController::class, 'index'])->name('empresas.estados-financieros');
     Route::resource('/estados-financieros', EstadoFinancieroController::class)->except(['index']); // Excluimos index para no chocar con la ruta de arriba
     Route::resource('/empresas', EmpresaController::class);
+    Route::get('/analisis-ratios', [AnalisisRatiosController::class, 'index'])->name('analisis-ratios.index');
 });

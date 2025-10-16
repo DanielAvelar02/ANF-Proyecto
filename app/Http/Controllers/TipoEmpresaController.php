@@ -12,8 +12,6 @@ class TipoEmpresaController extends Controller
      */
     public function index()
     {
-        // Por ahora, solo renderiza el componente de React.
-        // Más adelante, aquí obtendremos los datos de la base de datos.
         return Inertia::render('TiposEmpresa/Index');
     }
 
