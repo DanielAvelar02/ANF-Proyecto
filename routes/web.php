@@ -3,6 +3,7 @@
 use App\Http\Controllers\AuthController; // Controlador de autenticación - Avelar
 use App\Http\Controllers\ProyeccionesController;
 use App\Http\Controllers\TipoEmpresaController; // Controlador de Tipos de Empresa
+use App\Http\Controllers\EmpresaController; // Controlador de Empresas
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -22,5 +23,6 @@ Route::middleware('auth')->group(function () {
 
     //Rutas Ratios
     Route::resource('/tipos-empresa', TipoEmpresaController::class);
+    Route::resource('/empresas', EmpresaController::class);
 
 });

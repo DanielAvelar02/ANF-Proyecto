@@ -137,10 +137,7 @@ export default function TiposEmpresaIndex() {
   return (
     <>
       <Head title="Gestionar Tipos de Empresa" />
-
-      {/* Esto es para la "miga de pan" de navegación. */}
-      <Breadcrumb items={[{ title: 'Inicio' }, { title: 'Catálogos' }, { title: 'Tipos de Empresa' }]} style={{ marginBottom: '16px' }} />
-      
+         
       {/* Esto es para el encabezado de la página. */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
         <Title level={2} style={{ margin: 0 }}>Gestionar Tipos de Empresa</Title>
