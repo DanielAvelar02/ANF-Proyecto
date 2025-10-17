@@ -37,22 +37,23 @@ const mockRatioDefinitions = [
     { key: '5', nombre: 'Endeudamiento Patrimonial', formula: 'Pasivo Total / Patrimonio' },
 ];
 
+// MODIFICADO: 'benchmarkSector' ahora es 'ratioSector'.
 const mockRatiosCalculados = {
-    1: [{ key: '1', valorCalculado: 2.5, benchmarkSector: 2.0 }, { key: '2', valorCalculado: 1.2, benchmarkSector: 1.0 }, { key: '3', valorCalculado: 0.15, benchmarkSector: 0.18 }],
-    2: [{ key: '1', valorCalculado: 3.1, benchmarkSector: 2.8 }, { key: '2', valorCalculado: 1.8, benchmarkSector: 1.5 }, { key: '3', valorCalculado: 0.22, benchmarkSector: 0.20 }]
+    1: [{ key: '1', valorCalculado: 2.5, ratioSector: 2.0 }, { key: '2', valorCalculado: 1.2, ratioSector: 1.0 }, { key: '3', valorCalculado: 0.15, ratioSector: 0.18 }],
+    2: [{ key: '1', valorCalculado: 3.1, ratioSector: 2.8 }, { key: '2', valorCalculado: 1.8, ratioSector: 1.5 }, { key: '3', valorCalculado: 0.22, ratioSector: 0.20 }]
 };
 
 const mockAllCompanyRatioValues = {
     '2': [ { empresaId: 1, nombre: 'Empresa Minera S.A.', valor: 1.2 }, { empresaId: 2, nombre: 'Venta de Equipos Corp.', valor: 1.8 }, { empresaId: 3, nombre: 'Consultores Tech', valor: 1.4 },],
 };
 
-const mockGraficosEvolucion = [
-    { title: 'Evolución de Razón Circulante', data: [['2023', 1.8], ['2024', 2.1], ['2025', 2.5]] },
-    { title: 'Evolución de ROE (%)', data: [['2023', 12], ['2024', 14], ['2025', 15]] },
-    { title: 'Evolución de ROA (%)', data: [['2023', 6], ['2024', 7.5], ['2025', 8]] },
-    { title: 'Evolución de Endeudamiento', data: [['2023', 0.55], ['2024', 0.5], ['2025', 0.45]] },
-    { title: 'Evolución de Rotación de Activos', data: [['2023', 1.1], ['2024', 1.3], ['2025', 1.4]] },
-];
+const mockGraficosEvolucion = {
+    'Razón Circulante': [ { anio: 2023, valor: 1.8 }, { anio: 2024, valor: 2.1 }, { anio: 2025, valor: 2.5 } ],
+    'ROE (%)': [ { anio: 2023, valor: 12 }, { anio: 2024, valor: 14 }, { anio: 2025, valor: 15 } ],
+    'ROA (%)': [ { anio: 2023, valor: 6 }, { anio: 2024, valor: 7.5 }, { anio: 2025, valor: 8 } ],
+    'Endeudamiento': [ { anio: 2023, valor: 0.55 }, { anio: 2024, valor: 0.5 }, { anio: 2025, valor: 0.45 } ],
+    'Rotación de Activos': [ { anio: 2023, valor: 1.1 }, { anio: 2024, valor: 1.3 }, { anio: 2025, valor: 1.4 } ],
+};
 
 // --- Componente Principal de la Página ---
 // BACKEND: El componente recibirá todos los datos de prueba como props desde el controlador.
@@ -67,8 +68,8 @@ export default function AnalisisRatiosIndex() {
             { title: 'Nombre del Ratio', dataIndex: 'nombre', key: 'nombre' },
             { title: 'Fórmula', dataIndex: 'formula', key: 'formula' },
             { title: 'Valor Calculado', dataIndex: 'valorCalculado', render: (val) => val ? <Text strong>{val}</Text> : '-' },
-            { title: 'Benchmark Sector', dataIndex: 'benchmarkSector', render: (val) => val || '-' },
-            { title: 'Evaluación', key: 'evaluacion', render: (_, record) => { if (!record.valorCalculado) return '-'; const favorable = record.valorCalculado >= record.benchmarkSector; return <Tag color={favorable ? 'success' : 'error'}>{favorable ? 'Favorable' : 'Desfavorable'}</Tag>}}
+            { title: 'Ratio Sector', dataIndex: 'ratioSector', render: (val) => val || '-' },
+            { title: 'Evaluación', key: 'evaluacion', render: (_, record) => { if (!record.valorCalculado) return '-'; const favorable = record.valorCalculado >= record.ratioSector; return <Tag color={favorable ? 'success' : 'error'}>{favorable ? 'Favorable' : 'Desfavorable'}</Tag>}}
         ];
         
         return (
@@ -122,7 +123,7 @@ export default function AnalisisRatiosIndex() {
                 <div style={{ textAlign: 'center', padding: '20px', background: '#f0f2f5', borderRadius: '8px' }}>
                     <LineChartOutlined style={{ fontSize: '48px', color: '#999' }} />
                     <Title level={5} style={{ marginTop: '10px' }}>Evolución (Simulada)</Title>
-                    <Text type="secondary">{data.map(([year, value]) => `${year}: ${value}`).join(' | ')}</Text>
+                    <Text type="secondary">{data.map(d => `${d.anio}: ${d.valor}`).join(' | ')}</Text>
                 </div>
             </Card>
         );
@@ -139,9 +140,9 @@ export default function AnalisisRatiosIndex() {
                     <Alert message="Por favor, seleccione una empresa para visualizar los gráficos." type="info" showIcon />
                 ) : (
                     <Row gutter={[16, 16]}>
-                        {mockGraficosEvolucion.map(grafico => (
-                            <Col xs={24} md={12} key={grafico.title}>
-                                <GraficoCard title={grafico.title} data={grafico.data} />
+                        {Object.entries(mockGraficosEvolucion).map(([title, data]) => (
+                            <Col xs={24} md={12} key={title}>
+                                <GraficoCard title={title} data={data} />
                             </Col>
                         ))}
                     </Row>
@@ -161,9 +162,7 @@ export default function AnalisisRatiosIndex() {
     return (
         <>
             <Head title="Análisis de Ratios" />
-            
-            {/* Esto es para la "miga de pan" y el encabezado. */}
-            <Breadcrumb items={[{ title: 'Inicio' }, { title: 'Análisis de Ratios' }]} style={{ marginBottom: 16 }} />
+
             <Title level={2} style={{ margin: 0, marginBottom: 16 }}>Análisis de Ratios Financieros</Title>
             
             {/* Esto renderiza el contenedor de las pestañas. */}

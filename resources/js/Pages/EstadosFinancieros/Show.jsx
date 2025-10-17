@@ -44,7 +44,6 @@ export default function Show({ estadoFinanciero }) {
 
             {/* Esto es para la "miga de pan" de navegación. */}
             <Breadcrumb style={{ marginBottom: '16px' }}>
-                <Breadcrumb.Item><Link href="/dashboard">Inicio</Link></Breadcrumb.Item>
                 <Breadcrumb.Item><Link href="/empresas">Empresas</Link></Breadcrumb.Item>
                 {/* BACKEND: El 'empresa.id' y 'empresa.nombre' vendrán en las props. */}
                 <Breadcrumb.Item><Link href={`/empresas/${empresa?.id}/estados-financieros`}>{empresa?.nombre}</Link></Breadcrumb.Item>

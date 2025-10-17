@@ -1,10 +1,8 @@
-// resources/js/Pages/Empresas/Index.jsx
-
 import React, { useState } from 'react';
 // BACKEND: Importamos 'router' de Inertia para hacer peticiones al backend.
 import { Head, Link } from '@inertiajs/react';
-import { Breadcrumb, Button, Space, Table, Typography, Modal, Form, Input, Select, App as AntApp } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import { Breadcrumb, Button, Space, Table, Typography, Modal, Form, Input, Select, App as AntApp, Dropdown, Menu, Tag } from 'antd';
+import { PlusOutlined, EditOutlined, DeleteOutlined, DownOutlined, UploadOutlined } from '@ant-design/icons';
 import AppLayout from '@/Layouts/AppLayout';
 
 const { Title } = Typography;
@@ -12,14 +10,14 @@ const { Option } = Select;
 const { useApp } = AntApp;
 
 // --- Datos de Prueba (Simplificados) ---
-// BACKEND: Esta lista estática desaparecerá. Los datos vendrán del controlador.
+// BACKEND: Esta lista estática desaparecerá.
 const datosInicialesEmpresas = [
-  { id: 1, nombre: 'Empresa Minera S.A.', tipo: 'Minería', idTipo: 1 },
-  { id: 2, nombre: 'Venta de Equipos Corp.', tipo: 'Venta de Equipo', idTipo: 2 },
-  { id: 3, nombre: 'Consultores Tech', tipo: 'Servicios', idTipo: 3 },
+  { id: 1, nombre: 'Empresa Minera S.A.', tipo: { nombre: 'Minería' }, idTipo: 1 },
+  { id: 2, nombre: 'Venta de Equipos Corp.', tipo: { nombre: 'Venta de Equipo' }, idTipo: 2 },
+  { id: 3, nombre: 'Consultores Tech', tipo: { nombre: 'Servicios' }, idTipo: 3 },
 ];
 
-// BACKEND: Esta lista también vendrá del controlador para llenar el <Select>.
+// BACKEND: Esta lista también vendrá del controlador.
 const tiposDeEmpresa = [
     { id: 1, nombre: 'Minería' },
     { id: 2, nombre: 'Venta de Equipo' },
@@ -27,20 +25,16 @@ const tiposDeEmpresa = [
 ];
 
 // --- Componente Principal de la Página ---
-// BACKEND: El componente recibirá los datos como 'props' desde Laravel.
-// La definición cambiará a: export default function EmpresasIndex({ empresas, tiposDeEmpresa }) {
 export default function EmpresasIndex() {
   const { message } = useApp();
   const [form] = Form.useForm();
 
   // --- Estados de React ---
-  // BACKEND: Este estado se inicializará con la 'prop' del controlador, no con 'datosInicialesEmpresas'.
-  // La línea cambiará a: const [listaDeEmpresas, setListaDeEmpresas] = useState(empresas);
   const [listaDeEmpresas, setListaDeEmpresas] = useState(datosInicialesEmpresas);
   const [modalVisible, setModalVisible] = useState(false);
   const [registroActual, setRegistroActual] = useState(null);
 
-  // --- Funciones para el Modal ---
+  // --- Funciones para el Modal (Tu código original, que funciona) ---
   const abrirModalParaCrear = () => {
     setRegistroActual(null);
     form.resetFields();
@@ -59,21 +53,16 @@ export default function EmpresasIndex() {
 
   const handleGuardar = () => {
     form.validateFields().then(values => {
-      // BACKEND: Esta lógica para encontrar el nombre del tipo se hará en el backend.
       const tipoSeleccionado = tiposDeEmpresa.find(t => t.id === values.idTipo);
-      const datosParaGuardar = { ...values, tipo: tipoSeleccionado.nombre };
+      const datosParaGuardar = { ...values, tipo: { nombre: tipoSeleccionado.nombre } };
 
       if (registroActual) {
-        // BACKEND: Aquí haremos una petición 'PUT' para actualizar en la base de datos.
-        // router.put(`/empresas/${registroActual.id}`, values, { onSuccess: () => ... });
         const listaActualizada = listaDeEmpresas.map(item => 
           item.id === registroActual.id ? { ...item, ...datosParaGuardar } : item
         );
         setListaDeEmpresas(listaActualizada);
         message.success('Empresa actualizada.');
       } else {
-        // BACKEND: Aquí haremos una petición 'POST' para crear en la base de datos.
-        // router.post('/empresas', values, { onSuccess: () => ... });
         const nuevaEmpresa = { id: Date.now(), ...datosParaGuardar };
         setListaDeEmpresas([...listaDeEmpresas, nuevaEmpresa]);
         message.success('Empresa creada.');
@@ -87,8 +76,6 @@ export default function EmpresasIndex() {
         title: `¿Eliminar "${registro.nombre}"?`,
         okText: 'Sí, eliminar', okType: 'danger', cancelText: 'No, cancelar',
         onOk: () => {
-            // BACKEND: Aquí haremos una petición 'DELETE' para eliminar de la base de datos.
-            // router.delete(`/empresas/${registro.id}`, { onSuccess: () => ... });
             const listaActualizada = listaDeEmpresas.filter(item => item.id !== registro.id);
             setListaDeEmpresas(listaActualizada);
             message.success(`"${registro.nombre}" fue eliminada.`);
@@ -97,23 +84,36 @@ export default function EmpresasIndex() {
   };
 
   // --- Definición de la Tabla ---
+  // MODIFICADO: Columnas finales sin 'Fecha de Creación'.
   const columns = [
-    { title: 'ID', dataIndex: 'id', key: 'id', width: 80 },
     { title: 'Nombre de la Empresa', dataIndex: 'nombre', key: 'nombre' },
-    { title: 'Tipo', dataIndex: 'tipo', key: 'tipo' },
+    { title: 'Tipo de Empresa', dataIndex: 'tipo', key: 'tipo', render: (tipo) => <Tag color="blue">{tipo.nombre.toUpperCase()}</Tag> },
     {
       title: 'Acciones',
       key: 'acciones',
       align: 'right',
-      render: (_, record) => (
-        <Space>
-            <Link href={`/empresas/${record.id}/estados-financieros`}>
-                <Button>Gestionar Estados Financieros</Button>
-            </Link>
-            <Button onClick={() => abrirModalParaEditar(record)}>Editar</Button>
-            <Button danger onClick={() => handleEliminar(record)}>Borrar</Button>
-        </Space>
-      ),
+      render: (_, record) => {
+        const actionsMenu = (
+            <Menu>
+                <Menu.Item key="gestionar" icon={<UploadOutlined />}>
+                    <Link href={`/empresas/${record.id}/estados-financieros`}>Gestionar Estados Financieros</Link>
+                </Menu.Item>
+                <Menu.Divider />
+                <Menu.Item key="editar" icon={<EditOutlined />} onClick={() => abrirModalParaEditar(record)}>
+                    Editar Empresa
+                </Menu.Item>
+                <Menu.Item key="eliminar" icon={<DeleteOutlined />} danger onClick={() => handleEliminar(record)}>
+                    Eliminar Empresa
+                </Menu.Item>
+            </Menu>
+        );
+
+        return (
+            <Dropdown overlay={actionsMenu}>
+                <Button>Más <DownOutlined /></Button>
+            </Dropdown>
+        );
+      },
     },
   ];
 
@@ -121,14 +121,11 @@ export default function EmpresasIndex() {
   return (
     <>
       <Head title="Gestionar Empresas" />
-      
-      {/* Esto es para la "miga de pan" y el encabezado. */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
         <Title level={2} style={{ margin: 0 }}>Gestionar Empresas</Title>
-        <Button type="primary" onClick={abrirModalParaCrear}>Crear Nueva Empresa</Button>
+        <Button type="primary" icon={<PlusOutlined />} onClick={abrirModalParaCrear}>Crear Nueva Empresa</Button>
       </div>
 
-      {/* Esto renderiza la tabla. */}
       <Table columns={columns} dataSource={listaDeEmpresas} rowKey="id" />
 
       {/* --- Modal para Crear/Editar --- */}
@@ -158,5 +155,4 @@ export default function EmpresasIndex() {
 }
 
 // Esto es para aplicar el layout principal.
-EmpresasIndex.layout = page => <AppLayout>{page}</AppLayout>;
-
+EmpresasIndex.layout = page => <AppLayout>{page};</AppLayout>;

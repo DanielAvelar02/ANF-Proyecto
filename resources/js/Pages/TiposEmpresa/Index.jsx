@@ -141,7 +141,7 @@ export default function TiposEmpresaIndex() {
       {/* Esto es para el encabezado de la página. */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
         <Title level={2} style={{ margin: 0 }}>Gestionar Tipos de Empresa</Title>
-        <Button type="primary" onClick={abrirModalParaCrear}>Crear Nuevo Tipo</Button>
+        <Button type="primary" icon={<PlusOutlined />} onClick={abrirModalParaCrear}>Crear Nuevo Tipo</Button>
       </div>
 
       {/* Esto renderiza la tabla. */}
