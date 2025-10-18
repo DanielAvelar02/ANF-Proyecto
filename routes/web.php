@@ -2,7 +2,12 @@
 
 use App\Http\Controllers\AuthController; // Controlador de autenticación - Avelar
 use App\Http\Controllers\ProyeccionesController;
+use App\Http\Controllers\TipoEmpresaController; // Controlador de Tipos de Empresa
+use App\Http\Controllers\EmpresaController; // Controlador de Empresas
+use App\Http\Controllers\EstadoFinancieroController; // Controlador de Estados Financieros
+use App\Http\Controllers\AnalisisRatiosController; // Controlador de Análisis de Ratios
 use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
 
 Route::get('/', fn () => redirect('/login'));
 
@@ -16,7 +21,12 @@ Route::middleware('auth')->group(function () {
     // Rutas para Proyecciones
     Route::get('/proyecciones', [ProyeccionesController::class, 'index'])->name('proyecciones.index');
     Route::post('/proyecciones/calcular', [ProyeccionesController::class, 'calcular'])->name('proyecciones.calcular');
-    Route::post('/proyecciones/importar-excel', action: [ProyeccionesController::class, 'importarExcel'])->name('proyecciones.importar');
+    Route::post('/proyecciones/importar-excel', [ProyeccionesController::class, 'importarExcel'])->name('proyecciones.importar');
 
-    
+    //Rutas Ratios
+    Route::resource('/tipos-empresa', TipoEmpresaController::class);
+    Route::get('/empresas/{empresa}/estados-financieros', [EstadoFinancieroController::class, 'index'])->name('empresas.estados-financieros');
+    Route::resource('/estados-financieros', EstadoFinancieroController::class)->except(['index']); // Excluimos index para no chocar con la ruta de arriba
+    Route::resource('/empresas', EmpresaController::class);
+    Route::get('/analisis-ratios', [AnalisisRatiosController::class, 'index'])->name('analisis-ratios.index');
 });

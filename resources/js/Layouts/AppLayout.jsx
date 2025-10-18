@@ -8,6 +8,8 @@ import {
     UserOutlined,
     LogoutOutlined,
     FundProjectionScreenOutlined,
+    ApartmentOutlined,
+    BarChartOutlined,
     HomeOutlined,
 } from '@ant-design/icons'
 import { Layout, Menu, theme, Button, Space, Typography, ConfigProvider, App as AntApp } from 'antd'
@@ -23,24 +25,32 @@ function getItem(label, key, icon, children) {
 
 const items = [
     // Estas son las opciones del menú lateral
-    // Cada item puede tener un onClick para navegar usando Inertia
-    // Entonces en lugar de usar 'a' o 'Link', usamos router.visit('/ruta')
     {
         ...getItem('Inicio', '1', <HomeOutlined />),
         onClick: () => router.visit('/dashboard'),
     },
-    getItem('Analisis Financiero', '2', <DesktopOutlined />),
+    getItem('Analisis Financiero', 'analisis', <DesktopOutlined />),
     {
-        ...getItem('Proyeccion Ventas', '3', <FundProjectionScreenOutlined />),
+        ...getItem('Proyeccion Ventas', 'proyecciones', <FundProjectionScreenOutlined />),
         onClick: () => router.visit('/proyecciones'),
     },
-    getItem('Opciones', 'sub1', <UserOutlined />, [
-        getItem('Tom', '4'),
-        getItem('Bill', '5'),
-        getItem('Alex', '6'),
+
+    // Empresas como principal con "Tipos de Empresa" como subitem
+    getItem('Empresas', 'empresas', <ApartmentOutlined />, [
+        {
+            ...getItem('Empresas', 'empresas:listado'),
+            onClick: () => router.visit('/empresas'),
+        },
+        {
+            ...getItem('Tipos de Empresa', 'empresas:tipos'),
+            onClick: () => router.visit('/tipos-empresa'),
+        },
     ]),
-    getItem('Team', 'sub2', <TeamOutlined />, [getItem('Team 1', '7'), getItem('Team 2', '8')]),
-    getItem('Files', '9', <FileOutlined />),
+    
+    {
+        ...getItem('Análisis Ratios', 'Ratios', <BarChartOutlined />),
+        onClick: () => router.visit('/analisis-ratios'),
+    },
 ]
 
 // Componente principal del layout, que envuelve las páginas
