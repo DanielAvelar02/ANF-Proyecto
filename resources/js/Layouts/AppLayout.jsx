@@ -1,10 +1,7 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import { usePage, Head, router } from '@inertiajs/react'
 import {
-    DesktopOutlined,
-    FileOutlined,
-    PieChartOutlined,
-    TeamOutlined,
+    TableOutlined,
     UserOutlined,
     LogoutOutlined,
     FundProjectionScreenOutlined,
@@ -29,14 +26,19 @@ const items = [
         ...getItem('Inicio', '1', <HomeOutlined />),
         onClick: () => router.visit('/dashboard'),
     },
-    getItem('Analisis Financiero', 'analisis', <DesktopOutlined />),
     {
-        ...getItem('Proyeccion Ventas', 'proyecciones', <FundProjectionScreenOutlined />),
+        ...getItem('Análisis Ratios', '2', <BarChartOutlined />),
+        onClick: () => router.visit('/analisis-ratios'),
+    },
+    getItem('Análisis Horizontal y Vertical', '3', <TableOutlined />),
+
+    {
+        ...getItem('Proyección Ventas', '4', <FundProjectionScreenOutlined />),
         onClick: () => router.visit('/proyecciones'),
     },
 
     // Empresas como principal con "Tipos de Empresa" como subitem
-    getItem('Empresas', 'empresas', <ApartmentOutlined />, [
+    getItem('Gestión', '5', <ApartmentOutlined />, [
         {
             ...getItem('Empresas', 'empresas:listado'),
             onClick: () => router.visit('/empresas'),
@@ -46,11 +48,7 @@ const items = [
             onClick: () => router.visit('/tipos-empresa'),
         },
     ]),
-    
-    {
-        ...getItem('Análisis Ratios', 'Ratios', <BarChartOutlined />),
-        onClick: () => router.visit('/analisis-ratios'),
-    },
+
 ]
 
 // Componente principal del layout, que envuelve las páginas
@@ -67,6 +65,25 @@ export default function AppLayout({ children, title = 'ANF' }) {
     const { auth } = usePage().props || {}
     const userName = auth?.user?.nom || 'Perfil'
 
+    // Toma la URL actual de forma segura (Inertia v1 / v0.x / fallback)
+    const page = usePage()
+    const currentPath = (
+        page?.url ??
+        router?.page?.url ??                // para adaptadores más viejos
+        (typeof window !== 'undefined' ? window.location.pathname + window.location.search : '/')
+    ).split('?')[0] || '/'
+
+    const { selectedKey, defaultOpenKeys } = useMemo(() => {
+        const path = currentPath
+        if (path.startsWith('/analisis-ratios')) return { selectedKey: '2', defaultOpenKeys: [] }
+        if (path.startsWith('/analisis-hv') || path.startsWith('/analisis-horizontal')) return { selectedKey: '3', defaultOpenKeys: [] }
+        if (path.startsWith('/proyecciones')) return { selectedKey: '4', defaultOpenKeys: [] }
+        if (path.startsWith('/tipos-empresa')) return { selectedKey: '5', defaultOpenKeys: ['5'] }
+        if (path.startsWith('/empresas')) return { selectedKey: '5', defaultOpenKeys: ['5'] }
+        if (path.startsWith('/dashboard') || path === '/') return { selectedKey: '1', defaultOpenKeys: [] }
+        return { selectedKey: '1', defaultOpenKeys: [] }
+    }, [currentPath])
+
     // Función para cerrar sesión usando Inertia
     const doLogout = () => router.post('/logout')
 
@@ -78,7 +95,7 @@ export default function AppLayout({ children, title = 'ANF' }) {
                     <div style={{ height: 56, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700 }}>
                         ANF
                     </div>
-                    <Menu theme="dark" defaultSelectedKeys={['1']} mode="inline" items={items} />
+                    <Menu theme="dark" defaultSelectedKeys={[selectedKey]} defaultOpenKeys={defaultOpenKeys} mode="inline" items={items} />
                 </Sider>
 
                 <Layout>

@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 // BACKEND: Importamos 'router' de Inertia para hacer peticiones al backend.
 import { Head, router } from '@inertiajs/react';
-import { Breadcrumb, Button, Space, Table, Typography, Modal, Form, Input, App as AntApp, InputNumber, Divider } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import { Menu, Button, Space, Table, Typography, Modal, Form, Input, App as AntApp, InputNumber, Divider, Card, Dropdown, Grid } from 'antd';
+import { PlusOutlined, EditOutlined, DeleteOutlined, DownOutlined, DashboardOutlined  } from '@ant-design/icons';
 import AppLayout from '@/Layouts/AppLayout';
+import BotonEditable from "@/components/proyecciones/BotonEditable";
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -18,16 +19,16 @@ const datosIniciales = [
 ];
 
 const listaDeRatios = [
-    'Razón de Liquidez corriente o Razón de Circulante', 
-    'Razón de Capital de Trabajo a activos totales', 
-    'Razón de Rotación de cuentas por cobrar', 'Razón de periodo medio de cobranza', 
-    'Razón de Rotación de cuentas por pagar', 
-    'Razón periodo medio de pago', 
-    'Índice de Rotación de Activos totales', 
-    'Índice de Rotación de Activos fijos', 'Razón de Endeudamiento Patrimonial', 
-    'Grado de Propiedad', 'Razón de Cobertura de Gastos Financieros', 
-    'Rentabilidad del Patrimonio (ROE)', 'Rentabilidad del Activo (ROA)', 
-    'Rentabilidad sobre Ventas',
+  'Razón de Liquidez corriente o Razón de Circulante',
+  'Razón de Capital de Trabajo a activos totales',
+  'Razón de Rotación de cuentas por cobrar', 'Razón de periodo medio de cobranza',
+  'Razón de Rotación de cuentas por pagar',
+  'Razón periodo medio de pago',
+  'Índice de Rotación de Activos totales',
+  'Índice de Rotación de Activos fijos', 'Razón de Endeudamiento Patrimonial',
+  'Grado de Propiedad', 'Razón de Cobertura de Gastos Financieros',
+  'Rentabilidad del Patrimonio (ROE)', 'Rentabilidad del Activo (ROA)',
+  'Rentabilidad sobre Ventas',
 ];
 
 // --- Componente Principal de la Página ---
@@ -37,6 +38,7 @@ export default function TiposEmpresaIndex() {
   const { message } = useApp();
   const [form] = Form.useForm();
   const [benchmarkForm] = Form.useForm();
+  const screens = Grid.useBreakpoint();
 
   // --- Estados de React ---
   // BACKEND: Este estado se inicializará con la 'prop' del controlador, no con 'datosIniciales'.
@@ -45,14 +47,14 @@ export default function TiposEmpresaIndex() {
   const [modalVisible, setModalVisible] = useState(false);
   const [registroActual, setRegistroActual] = useState(null);
   const [benchmarkModalVisible, setBenchmarkModalVisible] = useState(false);
-  
+
   // --- Funciones para el Modal de Crear/Editar ---
   const abrirModalParaCrear = () => {
     setRegistroActual(null);
     form.resetFields();
     setModalVisible(true);
   };
-  
+
   const abrirModalParaEditar = (registro) => {
     setRegistroActual(registro);
     form.setFieldsValue(registro);
@@ -68,7 +70,7 @@ export default function TiposEmpresaIndex() {
       if (registroActual) {
         // BACKEND: Aquí haremos una petición 'PUT' para actualizar en la base de datos.
         // router.put(`/tipos-empresa/${registroActual.id}`, values, { onSuccess: () => message.success(...) });
-        const listaActualizada = listaDeTipos.map(item => 
+        const listaActualizada = listaDeTipos.map(item =>
           item.id === registroActual.id ? { ...item, ...values } : item
         );
         setListaDeTipos(listaActualizada);
@@ -83,26 +85,26 @@ export default function TiposEmpresaIndex() {
       setModalVisible(false);
     });
   };
-  
+
   // --- Funciones para Eliminar y Benchmarks ---
   const handleEliminar = (registro) => {
     Modal.confirm({
-        title: `¿Eliminar "${registro.nombre}"?`,
-        okText: 'Sí, eliminar', okType: 'danger', cancelText: 'No, cancelar',
-        onOk: () => {
-            // BACKEND: Aquí haremos una petición 'DELETE' para eliminar de la base de datos.
-            // router.delete(`/tipos-empresa/${registro.id}`, { onSuccess: () => message.success(...) });
-            const listaActualizada = listaDeTipos.filter(item => item.id !== registro.id);
-            setListaDeTipos(listaActualizada);
-            message.success(`"${registro.nombre}" fue eliminado.`);
-        }
+      title: `¿Eliminar "${registro.nombre}"?`,
+      okText: 'Sí, eliminar', okType: 'danger', cancelText: 'No, cancelar',
+      onOk: () => {
+        // BACKEND: Aquí haremos una petición 'DELETE' para eliminar de la base de datos.
+        // router.delete(`/tipos-empresa/${registro.id}`, { onSuccess: () => message.success(...) });
+        const listaActualizada = listaDeTipos.filter(item => item.id !== registro.id);
+        setListaDeTipos(listaActualizada);
+        message.success(`"${registro.nombre}" fue eliminado.`);
+      }
     });
   };
 
   const abrirModalBenchmarks = (registro) => {
     setRegistroActual(registro);
     // BACKEND: Aquí haremos una petición 'GET' para cargar los benchmarks guardados para este sector.
-    benchmarkForm.resetFields(); 
+    benchmarkForm.resetFields();
     setBenchmarkModalVisible(true);
   };
 
@@ -123,69 +125,92 @@ export default function TiposEmpresaIndex() {
       title: 'Acciones',
       key: 'acciones',
       align: 'right',
-      render: (_, record) => (
-        <Space>
-          <Button onClick={() => abrirModalBenchmarks(record)}>Definir Benchmarks</Button>
-          <Button onClick={() => abrirModalParaEditar(record)}>Editar</Button>
-          <Button danger onClick={() => handleEliminar(record)}>Borrar</Button>
-        </Space>
-      ),
+      render: (_, record) => {
+        const actionsMenu = (
+          <Menu>
+            <Menu.Item key="gestionar" icon={<DashboardOutlined />} onClick={() => abrirModalBenchmarks(record)}>Definir Benchmarks
+            </Menu.Item>
+            <Menu.Divider />
+            <Menu.Item key="editar" icon={<EditOutlined />} onClick={() => abrirModalParaEditar(record)}>
+              Editar
+            </Menu.Item>
+            <Menu.Item key="eliminar" icon={<DeleteOutlined />} danger onClick={() => handleEliminar(record)}>
+              Eliminar
+            </Menu.Item>
+          </Menu>
+        );
+
+        // En pantallas medianas y grandes mostramos los botones separados en una sola columna (alineados a la derecha).
+        if (screens && screens.md) {
+          return (<Space>
+            <BotonEditable icon={<DashboardOutlined />} color='green' onClick={() => abrirModalBenchmarks(record)}>Definir Benchmarks</BotonEditable>
+            <BotonEditable icon={<EditOutlined />} color="#d89614" onClick={() => abrirModalParaEditar(record)}>Editar</BotonEditable>
+            <Button danger icon={<DeleteOutlined />} onClick={() => handleEliminar(record)}>Borrar</Button>
+          </Space >
+          );
+        }
+
+        return (<Dropdown overlay={actionsMenu}>
+          <Button>Más <DownOutlined /></Button>
+        </Dropdown>);
+
+      },
     },
   ];
 
   // --- Renderizado del Componente ---
   return (
-    <>
-      <Head title="Gestionar Tipos de Empresa" />
-         
+    <>  {/* Inicio del título de la página */}
+      <title>ANF - Tipos Empresas</title>
+      <Head title="Gestión de Tipos de Empresa" />
       {/* Esto es para el encabezado de la página. */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-        <Title level={2} style={{ margin: 0 }}>Gestionar Tipos de Empresa</Title>
-        <Button type="primary" icon={<PlusOutlined />} onClick={abrirModalParaCrear}>Crear Nuevo Tipo</Button>
-      </div>
-
-      {/* Esto renderiza la tabla. */}
-      <Table columns={columns} dataSource={listaDeTipos} rowKey="id" />
-
-      {/* --- Modal para Crear/Editar --- */}
-      <Modal
-        title={registroActual ? 'Editar Tipo de Empresa' : 'Crear Nuevo Tipo de Empresa'}
-        open={modalVisible}
-        onOk={handleGuardar}
-        onCancel={handleCancelar}
-        okText="Guardar"
-        cancelText="Cancelar"
+      <Card
+        title="Gestión de Tipos de Empresa"
+        extra={<Button type="primary" icon={<PlusOutlined />} onClick={abrirModalParaCrear}>Crear Nuevo Tipo</Button>}
       >
-        <Form form={form} layout="vertical" style={{ marginTop: 24 }}>
-          <Form.Item name="nombre" label="Nombre del Tipo / Sector" rules={[{ required: true, message: 'Este campo es obligatorio.' }]}>
-            <Input />
-          </Form.Item>
-          <Form.Item name="descripcion" label="Descripción">
-            <TextArea rows={3} />
-          </Form.Item>
-        </Form>
-      </Modal>
+        {/* Esto renderiza la tabla. */}
+        <Table columns={columns} dataSource={listaDeTipos} rowKey="id" />
 
-      {/* --- Modal para Benchmarks --- */}
-      <Modal
-        title={<>Definir Benchmarks para <Text type="success">{registroActual?.nombre}</Text></>}
-        open={benchmarkModalVisible}
-        onCancel={() => setBenchmarkModalVisible(false)}
-        onOk={handleGuardarBenchmarks}
-        width={800}
-        okText="Guardar Benchmarks"
-        cancelText="Cancelar"
-      >
-        <Form form={benchmarkForm} layout="vertical" style={{ marginTop: 24, maxHeight: '60vh', overflowY: 'auto', paddingRight: '16px' }}>
+        {/* --- Modal para Crear/Editar --- */}
+        <Modal
+          title={registroActual ? 'Editar Tipo de Empresa' : 'Crear Nuevo Tipo de Empresa'}
+          open={modalVisible}
+          onOk={handleGuardar}
+          onCancel={handleCancelar}
+          okText="Guardar"
+          cancelText="Cancelar"
+        >
+          <Form form={form} layout="vertical" style={{ marginTop: 24 }}>
+            <Form.Item name="nombre" label="Nombre del Tipo / Sector" rules={[{ required: true, message: 'Este campo es obligatorio.' }]}>
+              <Input />
+            </Form.Item>
+            <Form.Item name="descripcion" label="Descripción">
+              <TextArea rows={3} />
+            </Form.Item>
+          </Form>
+        </Modal>
+
+        {/* --- Modal para Benchmarks --- */}
+        <Modal
+          title={<>Definir Benchmarks para <Text type="success">{registroActual?.nombre}</Text></>}
+          open={benchmarkModalVisible}
+          onCancel={() => setBenchmarkModalVisible(false)}
+          onOk={handleGuardarBenchmarks}
+          width={800}
+          okText="Guardar Benchmarks"
+          cancelText="Cancelar"
+        >
+          <Form form={benchmarkForm} layout="vertical" style={{ marginTop: 24, maxHeight: '60vh', overflowY: 'auto', paddingRight: '16px' }}>
             <Text>Asigne el valor de benchmark para cada ratio en este sector.</Text>
             <Divider />
             {listaDeRatios.map(ratio => (
-                <Form.Item key={ratio} label={ratio} name={ratio}>
-                    <InputNumber style={{ width: '100%' }} placeholder="Ej: 0.55" />
-                </Form.Item>
+              <Form.Item key={ratio} label={ratio} name={ratio}>
+                <InputNumber style={{ width: '100%' }} placeholder="Ej: 0.55" />
+              </Form.Item>
             ))}
-        </Form>
-      </Modal>
+          </Form>
+        </Modal>
+      </Card>
     </>
   );
 }

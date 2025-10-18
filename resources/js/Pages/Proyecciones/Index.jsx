@@ -5,7 +5,7 @@ import TablaMeses from '@/Components/proyecciones/TablaMeses';
 import SubidaExcel from '@/Components/proyecciones/SubidaExcel';
 import ResultadoProyeccion from '@/Components/proyecciones/ResultadoProyeccion';
 import AppLayout from '@/Layouts/AppLayout';
-import { EditOutlined, EllipsisOutlined, SettingOutlined } from '@ant-design/icons';
+import { ClearOutlined, EllipsisOutlined, SettingOutlined } from '@ant-design/icons';
 import BotonEditable from "@/components/proyecciones/BotonEditable";
 
 /**
@@ -100,7 +100,7 @@ export default function Index() {
             {/* Inicio del título de la página */}
             <title>ANF - Proyección</title>
             <Head title="Proyecciones de Ventas" /> {/* Título de la página */}
-            <Card title="Proyección de ventas (12 meses)" actions={[<SettingOutlined key="setting" />, <EditOutlined key="edit" />, <EllipsisOutlined key="ellipsis" />]}>
+            <Card title="Proyección de ventas (12 meses)">
                 {/* Descripción debajo del título */}
                 <Card type="inner" style={{ border: 'none' }}>
                     <Meta
@@ -141,10 +141,7 @@ export default function Index() {
                                         <Button type="primary" onClick={onCalcular} loading={loading}>
                                             Calcular proyección
                                         </Button>
-                                        <Button color="purple" variant="outlined" >
-                                            Limpiar
-                                        </Button>
-                                        <BotonEditable color="#d89614" onClick={onLimpiar}>Editar</BotonEditable>
+                                        <BotonEditable icon={<ClearOutlined />} color="#d89614" onClick={onLimpiar}>Limpiar</BotonEditable>
 
                                     </Space>
                                 </Form>

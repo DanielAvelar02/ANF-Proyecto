@@ -24,9 +24,9 @@ const { Option } = Select;
 // --- Datos de Prueba para la Página de Análisis ---
 // BACKEND: Todas estas listas de 'mock' datos vendrán como props desde el controlador de Laravel.
 const mockEmpresas = [
-  { id: 1, nombre: 'Empresa Minera S.A.' },
-  { id: 2, nombre: 'Venta de Equipos Corp.' },
-  { id: 3, nombre: 'Consultores Tech' },
+    { id: 1, nombre: 'Empresa Minera S.A.' },
+    { id: 2, nombre: 'Venta de Equipos Corp.' },
+    { id: 3, nombre: 'Consultores Tech' },
 ];
 
 const mockRatioDefinitions = [
@@ -44,21 +44,21 @@ const mockRatiosCalculados = {
 };
 
 const mockAllCompanyRatioValues = {
-    '2': [ { empresaId: 1, nombre: 'Empresa Minera S.A.', valor: 1.2 }, { empresaId: 2, nombre: 'Venta de Equipos Corp.', valor: 1.8 }, { empresaId: 3, nombre: 'Consultores Tech', valor: 1.4 },],
+    '2': [{ empresaId: 1, nombre: 'Empresa Minera S.A.', valor: 1.2 }, { empresaId: 2, nombre: 'Venta de Equipos Corp.', valor: 1.8 }, { empresaId: 3, nombre: 'Consultores Tech', valor: 1.4 },],
 };
 
 const mockGraficosEvolucion = {
-    'Razón Circulante': [ { anio: 2023, valor: 1.8 }, { anio: 2024, valor: 2.1 }, { anio: 2025, valor: 2.5 } ],
-    'ROE (%)': [ { anio: 2023, valor: 12 }, { anio: 2024, valor: 14 }, { anio: 2025, valor: 15 } ],
-    'ROA (%)': [ { anio: 2023, valor: 6 }, { anio: 2024, valor: 7.5 }, { anio: 2025, valor: 8 } ],
-    'Endeudamiento': [ { anio: 2023, valor: 0.55 }, { anio: 2024, valor: 0.5 }, { anio: 2025, valor: 0.45 } ],
-    'Rotación de Activos': [ { anio: 2023, valor: 1.1 }, { anio: 2024, valor: 1.3 }, { anio: 2025, valor: 1.4 } ],
+    'Razón Circulante': [{ anio: 2023, valor: 1.8 }, { anio: 2024, valor: 2.1 }, { anio: 2025, valor: 2.5 }],
+    'ROE (%)': [{ anio: 2023, valor: 12 }, { anio: 2024, valor: 14 }, { anio: 2025, valor: 15 }],
+    'ROA (%)': [{ anio: 2023, valor: 6 }, { anio: 2024, valor: 7.5 }, { anio: 2025, valor: 8 }],
+    'Endeudamiento': [{ anio: 2023, valor: 0.55 }, { anio: 2024, valor: 0.5 }, { anio: 2025, valor: 0.45 }],
+    'Rotación de Activos': [{ anio: 2023, valor: 1.1 }, { anio: 2024, valor: 1.3 }, { anio: 2025, valor: 1.4 }],
 };
 
 // --- Componente Principal de la Página ---
 // BACKEND: El componente recibirá todos los datos de prueba como props desde el controlador.
 export default function AnalisisRatiosIndex() {
-    
+
     // --- Pestaña 1: Componente para el Análisis Individual ---
     const AnalisisIndividualTab = () => {
         const [selectedEmpresaId, setSelectedEmpresaId] = useState(null);
@@ -69,9 +69,9 @@ export default function AnalisisRatiosIndex() {
             { title: 'Fórmula', dataIndex: 'formula', key: 'formula' },
             { title: 'Valor Calculado', dataIndex: 'valorCalculado', render: (val) => val ? <Text strong>{val}</Text> : '-' },
             { title: 'Ratio Sector', dataIndex: 'ratioSector', render: (val) => val || '-' },
-            { title: 'Evaluación', key: 'evaluacion', render: (_, record) => { if (!record.valorCalculado) return '-'; const favorable = record.valorCalculado >= record.ratioSector; return <Tag color={favorable ? 'success' : 'error'}>{favorable ? 'Favorable' : 'Desfavorable'}</Tag>}}
+            { title: 'Evaluación', key: 'evaluacion', render: (_, record) => { if (!record.valorCalculado) return '-'; const favorable = record.valorCalculado >= record.ratioSector; return <Tag color={favorable ? 'success' : 'error'}>{favorable ? 'Favorable' : 'Desfavorable'}</Tag> } }
         ];
-        
+
         return (
             <div>
                 <Space wrap style={{ marginBottom: 16 }}>
@@ -88,12 +88,12 @@ export default function AnalisisRatiosIndex() {
     const AnalisisComparativoTab = () => {
         const [selectedRatioId, setSelectedRatioId] = useState(null);
         const { promedio, empresas } = useMemo(() => { if (!selectedRatioId) return { promedio: 0, empresas: [] }; const valores = mockAllCompanyRatioValues[selectedRatioId] || []; if (valores.length === 0) return { promedio: 0, empresas: [] }; const sum = valores.reduce((acc, item) => acc + item.valor, 0); return { promedio: sum / valores.length, empresas: valores }; }, [selectedRatioId]);
-        const columns = [ { title: 'Empresa', dataIndex: 'nombre', key: 'nombre' }, { title: 'Valor Obtenido', dataIndex: 'valor', key: 'valor' }, { title: 'Resultado vs Promedio', key: 'resultado', render: (_, record) => { const cumple = record.valor >= promedio; return <Tag color={cumple ? 'success' : 'error'}>{cumple ? 'Cumple' : 'No Cumple'}</Tag>}}];
-        
+        const columns = [{ title: 'Empresa', dataIndex: 'nombre', key: 'nombre' }, { title: 'Valor Obtenido', dataIndex: 'valor', key: 'valor' }, { title: 'Resultado vs Promedio', key: 'resultado', render: (_, record) => { const cumple = record.valor >= promedio; return <Tag color={cumple ? 'success' : 'error'}>{cumple ? 'Cumple' : 'No Cumple'}</Tag> } }];
+
         return (
             <div>
                 <Space style={{ marginBottom: 16 }}><Text>Seleccione un ratio para analizar:</Text><Select placeholder="Ratio" style={{ width: 250 }} onChange={value => setSelectedRatioId(value)} allowClear>{mockRatioDefinitions.map(r => <Option key={r.key} value={r.key}>{r.nombre}</Option>)}</Select></Space>
-                {selectedRatioId && (<Card><Statistic title="Promedio del Sistema" value={promedio.toFixed(3)} /><Table columns={columns} dataSource={empresas} rowKey="empresaId" pagination={false} style={{marginTop: 16}}/></Card>)}
+                {selectedRatioId && (<Card><Statistic title="Promedio del Sistema" value={promedio.toFixed(3)} /><Table columns={columns} dataSource={empresas} rowKey="empresaId" pagination={false} style={{ marginTop: 16 }} /></Card>)}
             </div>
         );
     };
@@ -150,23 +150,27 @@ export default function AnalisisRatiosIndex() {
             </div>
         );
     };
-    
+
     // --- Definición de las Pestañas ---
-    const tabItems = [ 
-        { key: '1', label: 'Análisis Individual', children: <AnalisisIndividualTab /> }, 
-        { key: '2', label: 'Análisis Comparativo', children: <AnalisisComparativoTab /> }, 
+    const tabItems = [
+        { key: '1', label: 'Análisis Individual', children: <AnalisisIndividualTab /> },
+        { key: '2', label: 'Análisis Comparativo', children: <AnalisisComparativoTab /> },
         { key: '3', label: 'Gráficos de Evolución', children: <GraficosTab /> }
     ];
-    
+
     // --- Renderizado del Componente ---
     return (
         <>
+            {/* Inicio del título de la página */}
+            <title>ANF - Análisis Ratios</title>
             <Head title="Análisis de Ratios" />
+            <Card title="Análisis de Ratios">
+                {/* Esto renderiza el contenedor de las pestañas. */}
+                <Tabs defaultActiveKey="1" items={tabItems} />
+            </Card>
 
-            <Title level={2} style={{ margin: 0, marginBottom: 16 }}>Análisis de Ratios Financieros</Title>
-            
-            {/* Esto renderiza el contenedor de las pestañas. */}
-            <Tabs defaultActiveKey="1" items={tabItems} />
+
+
         </>
     );
 };

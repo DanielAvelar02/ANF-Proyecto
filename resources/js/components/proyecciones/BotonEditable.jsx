@@ -10,6 +10,7 @@ export default function BotonEditable({
     className = "",
     style = {},
     color = "#9254de", // color por defecto
+  icon = null,
 }) {
     // Estilos inline por defecto (se pueden sobrescribir con `style` prop)
     const defaultInline = {
@@ -25,7 +26,8 @@ export default function BotonEditable({
             style={{ ...defaultInline, ...style, ["--btn-color"]: color }}
 
         >
-            {/* Texto envuelto en span con estilos solicitados. Si children es JSX complejo, se renderiza tal cual dentro del span. */}
+            {/* Icono (opcional) y texto envuelto en span. */}
+            {icon ? <span className="anf-btn__icon">{icon}</span> : null}
             <span className="anf-btn__text">{children}</span>
 
             <style>{`
@@ -85,6 +87,15 @@ export default function BotonEditable({
           font-size: 14px;
           line-height: 22px;
           text-align: center;
+        }
+        .anf-btn__icon{
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          color: var(--btn-color, #722ed1);
+          /* tamaño del icono, si el icono es un SVG-inlined heredará el color */
+          font-size: 16px;
+          line-height: 1;
         }
       `}</style>
         </button>
