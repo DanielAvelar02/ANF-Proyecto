@@ -18,7 +18,7 @@ class ProyeccionesController extends Controller
 
     public function calcular(ProyeccionRequest $request, ProyeccionVentasServicio $servicio)
     {
-        $metodo  = $request->input('metodo');           // 'minimos_cuadrados' | 'incremento_porcentual' | 'incremento_absoluto'
+        $metodo = $request->input('metodo');           // 'minimos_cuadrados' | 'incremento_porcentual' | 'incremento_absoluto'
         $valores = $request->input('valores');          // array de números (11 o 12)
 
         $resultado = $servicio->calcular($valores, $metodo);

@@ -1,11 +1,16 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Head } from '@inertiajs/react';
-import { Card, Tabs, Form, Select, Button, Row, Col, Divider, App as AntApp } from 'antd';
+import { Card, Space, Form, Select, Button, Row, Col, App as AntApp } from 'antd';
 import TablaMeses from '@/Components/proyecciones/TablaMeses';
 import SubidaExcel from '@/Components/proyecciones/SubidaExcel';
 import ResultadoProyeccion from '@/Components/proyecciones/ResultadoProyeccion';
 import AppLayout from '@/Layouts/AppLayout';
-import { EditOutlined, EllipsisOutlined, FileTextTwoTone, FileExcelTwoTone, SettingOutlined } from '@ant-design/icons';
+import { EditOutlined, EllipsisOutlined, SettingOutlined } from '@ant-design/icons';
+import BotonEditable from "@/components/proyecciones/BotonEditable";
+
+/**
+ * TODO: Página para gestionar proyecciones de ventas
+ */
 
 const { Option } = Select;
 const { Meta } = Card;
@@ -17,9 +22,14 @@ export default function Index() {
     const [metodo, setMetodo] = useState('minimos_cuadrados');
     const [resultado, setResultado] = useState(null);
     const [loading, setLoading] = useState(false);
-
+    const subidaRef = useRef(null); // Referencia al componente SubidaExcel
+    const onLimpiar = () => {
+        setValores(Array(12).fill(null));
+        setMetodo('minimos_cuadrados');
+        setResultado(null);
+        if (subidaRef.current) subidaRef.current.clear(); // Limpiar el componente de subida
+    }
     const resultadosRef = useRef(null);  // Usamos useRef para la referencia del card de resultados
-
     const { message } = AntApp.useApp(); // Hook para mensajes globales de Ant Design
 
     // Función para calcular la proyección llamando al backend
@@ -63,7 +73,6 @@ export default function Index() {
         }
     };
 
-
     // Función para mover al card de resultados
     const scrollToResultados = () => {
         resultadosRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -79,7 +88,6 @@ export default function Index() {
         message.success(`Datos cargados (${vals.length} meses).`);
     };
 
-
     // Hacer scroll hacia el card de resultados solo cuando el resultado esté disponible
     useEffect(() => {
         if (resultado) {
@@ -89,6 +97,8 @@ export default function Index() {
 
     return (
         <>
+            {/* Inicio del título de la página */}
+            <title>ANF - Proyección</title>
             <Head title="Proyecciones de Ventas" /> {/* Título de la página */}
             <Card title="Proyección de ventas (12 meses)" actions={[<SettingOutlined key="setting" />, <EditOutlined key="edit" />, <EllipsisOutlined key="ellipsis" />]}>
                 {/* Descripción debajo del título */}
@@ -96,67 +106,63 @@ export default function Index() {
                     <Meta
                         title="Entrada de datos"
                     />
-                    <p>Ingresa los datos de ventas históricos para calcular la proyección.</p>
+                    <p>Ingresa manualmente o sube un archivo Excel con los datos de ventas históricos y selecciona un método para calcular la proyección.</p>
+
                     {/* Pestañas para ingreso manual o subir Excel */}
-                    <Tabs
-                        items={[
-                            // Pestaña para ingreso manual
-                            {
-                                key: 'manual',
-                                label: 'Ingreso manual',
-                                icon: <FileTextTwoTone />,
-                                // Contenido de la pestaña
-                                children: (
-                                    <>
-                                        {/* Formulario con tabla y opciones (3 columnas): 6 meses | 6 meses | método */}
-                                        <Row gutter={16}>
-                                            {/* Primera columna: meses 1-6 */}
-                                            <Col xs={24} md={8}>
-                                                <TablaMeses valores={valores} onChange={setValores} start={0} count={6} />
-                                            </Col>
+                    {/* Formulario con tabla y opciones (3 columnas): 6 meses | 6 meses | método */}
+                    <Row gutter={16}>
+                        {/* Primera columna: meses 1-6 */}
+                        <Col xs={24} md={8}>
+                            <TablaMeses valores={valores} onChange={setValores} start={0} count={6} />
+                        </Col>
 
-                                            {/* Segunda columna: meses 7-12 */}
-                                            <Col xs={24} md={8}>
-                                                <TablaMeses valores={valores} onChange={setValores} start={6} count={6} />
-                                            </Col>
+                        {/* Segunda columna: meses 7-12 */}
+                        <Col xs={24} md={8}>
+                            <TablaMeses valores={valores} onChange={setValores} start={6} count={6} />
+                        </Col>
 
-                                            {/* Tercera columna: selección de método y botón */}
-                                            <Col xs={24} md={8}>
-                                                <Form layout="vertical">
-                                                    <Form.Item label="Método">
-                                                        <Select value={metodo} onChange={setMetodo}>
-                                                            <Option value="minimos_cuadrados">Mínimos cuadrados</Option>
-                                                            <Option value="incremento_porcentual">Incremento porcentual</Option>
-                                                            <Option value="incremento_absoluto">Incremento absoluto</Option>
-                                                        </Select>
-                                                    </Form.Item>
-                                                    <Button type="primary" onClick={onCalcular} loading={loading}>
-                                                        Calcular proyección
-                                                    </Button>
-                                                </Form>
-                                            </Col>
-                                        </Row>
-                                    </>
-                                )
-                            },
-                            // Pestaña para subir Excel
-                            {
-                                key: 'excel',
-                                label: 'Subir Excel',
-                                icon: <FileExcelTwoTone twoToneColor="#16a322ff" />,
-                                children: <SubidaExcel onLeido={onExcelLeido} />
-                            }
-                        ]}
-                    />
-                </Card>
+                        {/* Tercera columna: selección de método y botón */}
+                        <Col xs={24} md={8} >
+                            {/* Espacio vertical entre elementos */}
+                            <Space direction="vertical" size="middle" style={{ display: 'flex' }}>
+
+
+                                <SubidaExcel ref={subidaRef} onLeido={onExcelLeido} />
+
+                                <Form layout="vertical">
+                                    <Form.Item label="Método">
+                                        <Select value={metodo} onChange={setMetodo}>
+                                            <Option value="minimos_cuadrados">Mínimos cuadrados</Option>
+                                            <Option value="incremento_porcentual">Incremento porcentual</Option>
+                                            <Option value="incremento_absoluto">Incremento absoluto</Option>
+                                        </Select>
+                                    </Form.Item>
+                                    <Space>
+                                        <Button type="primary" onClick={onCalcular} loading={loading}>
+                                            Calcular proyección
+                                        </Button>
+                                        <Button color="purple" variant="outlined" >
+                                            Limpiar
+                                        </Button>
+                                        <BotonEditable color="#d89614" onClick={onLimpiar}>Editar</BotonEditable>
+
+                                    </Space>
+                                </Form>
+                            </Space>
+
+                        </Col>
+                    </Row>
+
+                </Card >
 
                 {resultado && (
                     <div ref={resultadosRef}>  {/* Aquí se coloca la referencia */}
                         <ResultadoProyeccion resultado={resultado} />
                     </div>
-                )}
+                )
+                }
 
-            </Card>
+            </Card >
         </>
     );
 }

@@ -1,4 +1,12 @@
 <?php
+/* Comentario de Avelar:
+Los archivos de la carpeta app/Services contienen clases que encapsulan
+la lógica de negocio de la aplicación. Estas clases no están directamente
+ligadas a la capa de presentación (controladores) y pueden ser reutilizadas
+en diferentes contextos. Esto promueve la separación de preocupaciones y
+hace que el código sea más modular y fácil de mantener.
+En resumen, guarda los procesos de negocio que son engorrosos o repetitivos
+en un solo lugar, lo que facilita su mantenimiento y reutilización.*/
 
 namespace App\Services;
 

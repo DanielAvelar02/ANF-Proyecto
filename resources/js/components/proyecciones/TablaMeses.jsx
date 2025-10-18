@@ -1,13 +1,17 @@
 import React from 'react';
 import { Table, InputNumber } from 'antd';
 
+/**
+ * TODO: Componente para mostrar y editar las ventas por mes
+ */
+
+// Nombres de los meses
 const meses = ['Mes 1', 'Mes 2', 'Mes 3', 'Mes 4', 'Mes 5', 'Mes 6', 'Mes 7', 'Mes 8', 'Mes 9', 'Mes 10', 'Mes 11', 'Mes 12'];
 
-// Componente para mostrar y editar las ventas por mes
-// Ahora acepta `start` (índice inicial) y `count` (cantidad de meses a mostrar)
 export default function TablaMeses({ valores, onChange, start = 0, count = 12 }) {
     // Limitar rango
     const end = Math.min(start + count, meses.length);
+    // Extraer solo los meses que corresponden
     const slice = Array.from({ length: end - start }, (_, idx) => {
         const i = start + idx;
         return { key: i, mes: meses[i], valor: valores[i] };

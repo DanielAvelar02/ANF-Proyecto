@@ -16,5 +16,7 @@ Route::middleware('auth')->group(function () {
     // Rutas para Proyecciones
     Route::get('/proyecciones', [ProyeccionesController::class, 'index'])->name('proyecciones.index');
     Route::post('/proyecciones/calcular', [ProyeccionesController::class, 'calcular'])->name('proyecciones.calcular');
-    Route::post('/proyecciones/importar-excel', [ProyeccionesController::class, 'importarExcel'])->name('proyecciones.importar');
+    Route::post('/proyecciones/importar-excel', action: [ProyeccionesController::class, 'importarExcel'])->name('proyecciones.importar');
+
+    
 });

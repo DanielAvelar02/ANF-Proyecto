@@ -2,12 +2,15 @@ import React, { useState } from 'react';
 import { Card, Row, Col, Table, Typography, Button, Modal } from 'antd';
 import { Line } from '@ant-design/plots';
 
+/**
+ * TODO: Componente para mostrar el resultado de la proyección
+ */
+
 // Desestructurar Typography para usar Title
 const { Title } = Typography;
 
 const { Meta } = Card;
 
-// Componente para mostrar el resultado de la proyección
 export default function ResultadoProyeccion({ resultado }) {
     const { base, pronostico, metodo } = resultado;
     const [isModalVisible, setIsModalVisible] = useState(false); // Estado para el modal

@@ -10,11 +10,13 @@ const { Text } = Typography
 export default function Index() {
     return (
         <>
+            {/* Inicio del título de la página */}
+            <title>ANF - Dashboard</title>
             <Head title="Dashboard" />
             <div>
                 <Text strong style={{ fontSize: 18 }}>Bienvenido al Dashboard</Text>
                 <div style={{ marginTop: 12 }}>
-                    <p>Habemus Dashboard! David te amo</p>
+                    <p>Habemus Dashboard!</p>
                     <Button type="default">Acción</Button>
                 </div>
             </div>
