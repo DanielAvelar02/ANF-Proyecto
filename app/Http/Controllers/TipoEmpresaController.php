@@ -2,64 +2,66 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\TipoEmpresa;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\Redirect;
 
 class TipoEmpresaController extends Controller
 {
     /**
-     * Muestra la lista de los tipos de empresa.
+     * Muestra la lista de tipos de empresa.
      */
     public function index()
     {
-        return Inertia::render('TiposEmpresa/Index');
+        $tiposDeEmpresa = TipoEmpresa::all();
+
+        return Inertia::render('TiposEmpresa/Index', [
+            'tiposDeEmpresa' => $tiposDeEmpresa,
+        ]);
     }
 
     /**
-     * Muestra el formulario para crear un nuevo tipo de empresa.
-     */
-    public function create()
-    {
-        // Se implementará en el futuro.
-    }
-
-    /**
-     * Guarda un nuevo tipo de empresa en la base de datos.
+     * Almacena un nuevo tipo de empresa. (CREAR)
      */
     public function store(Request $request)
     {
-        // Se implementará en el futuro.
+        $validated = $request->validate([
+            'nombre' => ['required', 'string', 'max:100', 'unique:tipo_empresas,nombre'],
+            'descripcion' => ['nullable', 'string'],
+        ]);
+
+        TipoEmpresa::create($validated);
+
+        // Redirige al index para recargar la página con el nuevo tipo y muestra un mensaje flash
+        return Redirect::route('tipos-empresa.index')->with('success', 'Tipo de empresa creado con éxito.');
     }
 
     /**
-     * Muestra un tipo de empresa específico.
+     * Actualiza el tipo de empresa especificado. (EDITAR)
      */
-    public function show($id)
+    public function update(Request $request, TipoEmpresa $tipoEmpresa)
     {
-        // Se implementará en el futuro.
+        $validated = $request->validate([
+            // La validación 'unique' debe ignorar el registro actual al actualizar
+            'nombre' => ['required', 'string', 'max:100', 'unique:tipo_empresas,nombre,' . $tipoEmpresa->id],
+            'descripcion' => ['nullable', 'string'],
+        ]);
+
+        $tipoEmpresa->update($validated);
+
+        return Redirect::route('tipos-empresa.index')->with('success', 'Tipo de empresa actualizado con éxito.');
     }
 
     /**
-     * Muestra el formulario para editar un tipo de empresa.
+     * Elimina el tipo de empresa especificado. (ELIMINAR)
      */
-    public function edit($id)
+    public function destroy(TipoEmpresa $tipoEmpresa)
     {
-        // Se implementará en el futuro.
-    }
+        // Nota: Las empresas relacionadas se eliminarán en cascada por la definición de tu migración
+        $nombre = $tipoEmpresa->nombre;
+        $tipoEmpresa->delete();
 
-    /**
-     * Actualiza un tipo de empresa en la base de datos.
-     */
-    public function update(Request $request, $id)
-    {
-        // Se implementará en el futuro.
-    }
-
-    /**
-     * Elimina un tipo de empresa de la base de datos.
-     */
-    public function destroy($id)
-    {
-        // Se implementará en el futuro.
+        return Redirect::route('tipos-empresa.index')->with('success', "El tipo '{$nombre}' fue eliminado.");
     }
 }

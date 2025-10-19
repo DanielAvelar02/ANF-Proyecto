@@ -1,210 +1,238 @@
 import React, { useState } from 'react';
-// BACKEND: Importamos 'Link' para navegar entre páginas de Inertia.
-import { Head, Link } from '@inertiajs/react';
-import { Breadcrumb, Button, Space, Table, Typography, Modal, Form, Input, InputNumber, Row, Col, Card, Tooltip, App as AntApp, Tag} from 'antd';
-// Importamos todos los íconos que usaremos en la página.
-import { PlusOutlined, SettingOutlined, EyeOutlined, FileExcelTwoTone, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import { Head, Link, router } from '@inertiajs/react';
+import { Breadcrumb, Button, Space, Table, Row, Col, Typography, Modal, Form, Input, Card, Tooltip, App as AntApp, Tag, Empty, InputNumber } from 'antd';
+import { PlusOutlined, SettingOutlined, EyeOutlined, FileExcelTwoTone, DeleteOutlined, EditOutlined } from '@ant-design/icons';
 import AppLayout from '@/Layouts/AppLayout';
 import SubidaExcel from '@/Components/Estados Financieros/SubidaExcel';
 
 const { Title } = Typography;
 const { useApp } = AntApp;
 
-// --- Datos de Prueba ---
-// BACKEND: Todas estas listas estáticas desaparecerán. Los datos vendrán como 'props' desde el controlador.
-const datosInicialesEstados = [
-  { id: 1, periodo: '2024', origen: 'Importado' },
-  { id: 2, periodo: '2023', origen: 'Manual' },
-];
-const datosInicialesCatalogo = [ 
-    {id: 1, codigo: '1.1', nombre: 'Activos Corrientes'}, 
-    {id: 2, codigo: '2.1', nombre: 'Pasivos Corrientes'},
-];
+export default function EstadosFinancierosIndex({ empresa, estadosFinancieros, catalogoDeCuentas }) {
+    const { message ,modal} = useApp();
+    const [catalogoForm] = Form.useForm();
+    const [manualForm] = Form.useForm();
+    const [modalCatalogoVisible, setModalCatalogoVisible] = useState(false);
+    const [modalManualVisible, setModalManualVisible] = useState(false);
+    const [modalExcelVisible, setModalExcelVisible] = useState(false);
+    const [editingCuenta, setEditingCuenta] = useState(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
-// --- Componente Principal de la Página ---
-// BACKEND: El componente recibirá la 'empresa' y sus datos relacionados como 'props'.
-export default function EstadosFinancierosIndex({ empresa }) {
-  const { message } = useApp();
-  const [catalogoForm] = Form.useForm(); // Un formulario para el modal del catálogo.
+    const catalogoDefinido = catalogoDeCuentas && catalogoDeCuentas.length > 0;
 
-  // --- Estados de React ---
-  const [listaDeEstados, setListaDeEstados] = useState(datosInicialesEstados);
-  const [modalCatalogoVisible, setModalCatalogoVisible] = useState(false);
-  const [modalManualVisible, setModalManualVisible] = useState(false);
-  const [modalExcelVisible, setModalExcelVisible] = useState(false);
-  const [editingCuenta, setEditingCuenta] = useState(null);
-  
-  // BACKEND: Esta variable será dinámica, indicará si la empresa ya tiene un catálogo en la BD.
-  const catalogoDefinido = true;
+    // --- Lógica del Catálogo de Cuentas ---
+    const handleEditarCuenta = (cuenta) => {
+        setEditingCuenta(cuenta);
+        catalogoForm.setFieldsValue(cuenta);
+    };
 
-  // --- Funciones de Manejo de Eventos ---
-  const handleExcelLeido = (respuestaDelBackend) => {
-    // BACKEND: Aquí se procesará la respuesta del backend para actualizar la tabla de estados.
-    console.log("Respuesta del backend:", respuestaDelBackend);
-    message.success('Archivo procesado correctamente.');
-    setModalExcelVisible(false);
-  };
-  
-  const handleEliminarEstado = (registro) => {
-    Modal.confirm({
-      title: `¿Eliminar el estado financiero del periodo ${registro.periodo}?`,
-      okText: 'Sí, eliminar', okType: 'danger', cancelText: 'Cancelar',
-      onOk() {
-        // BACKEND: Aquí se ejecutará una petición DELETE a la ruta de 'estados-financieros.destroy'.
-        // router.delete(`/estados-financieros/${registro.id}`, { onSuccess: () => ... });
-        setListaDeEstados(prev => prev.filter(item => item.id !== registro.id));
-        message.success(`Estado del periodo ${registro.periodo} eliminado (simulado).`);
-      },
-    });
-  };
+    const handleCancelarEdicionCuenta = () => {
+        setEditingCuenta(null);
+        catalogoForm.resetFields();
+    };
 
-  const handleEditarCuenta = (cuenta) => {
-    setEditingCuenta(cuenta);
-    catalogoForm.setFieldsValue(cuenta);
-  };
-
-  const handleCancelarEdicionCuenta = () => {
-    setEditingCuenta(null);
-    catalogoForm.resetFields();
-  }
-  
-  const handleGuardarCuenta = () => {
-    // Lógica para guardar/actualizar una cuenta del catálogo (simulada).
-    catalogoForm.validateFields().then(values => {
+    const handleGuardarCuenta = (values) => {
         if (editingCuenta) {
-            // BACKEND: Aquí se haría una petición PUT para actualizar la cuenta.
-            console.log('Actualizando cuenta', editingCuenta.id, 'con', values);
-            message.success('Cuenta actualizada (simulado).');
+
+            router.put(`/catalogo-cuentas/${editingCuenta.id}`, values, {
+                onSuccess: () => {
+                    message.success('Cuenta actualizada.');
+                    handleCancelarEdicionCuenta();
+                },
+                onError: (errors) => message.error(errors.codigo_cuenta || errors.nombre_cuenta || 'Error al actualizar.'),
+                preserveScroll: true,
+            });
         } else {
-            // BACKEND: Aquí se haría una petición POST para crear una nueva cuenta.
-            console.log('Añadiendo nueva cuenta', values);
-            message.success('Cuenta añadida (simulado).');
+
+            router.post(`/empresas/${empresa.id}/catalogo-cuentas`, values, {
+                onSuccess: () => {
+                    message.success('Cuenta añadida al catálogo.');
+                    catalogoForm.resetFields();
+                },
+                onError: (errors) => message.error(errors.codigo_cuenta || errors.nombre_cuenta || 'Error al crear la cuenta.'),
+                preserveScroll: true,
+            });
         }
-        handleCancelarEdicionCuenta();
-    });
-  };
+    };
 
-  // --- Definición de las Tablas ---
-  // MODIFICADO: Se eliminó la columna 'Fecha de Carga'.
-  const estadosColumns = [ 
-    { 
-      title: 'Periodo (Año)', 
-      dataIndex: 'periodo', 
-      key: 'periodo',
-      render: (periodo) => <Tag color="blue">{periodo}</Tag>
-    }, 
-    { 
-      title: 'Origen', 
-      dataIndex: 'origen', 
-      key: 'origen',
-      render: (origen) => {
-        const color = origen === 'Importado' ? 'green' : 'purple';
-        return <Tag color={color}>{origen.toUpperCase()}</Tag>;
-      }
-    }, 
-    {
-      title: 'Acciones', key: 'acciones', align: 'right', 
-      render: (_, record) => (
-        <Space>
-          <Link href={`/estados-financieros/${record.id}`}>
-            <Button icon={<EyeOutlined />}>Ver</Button>
-          </Link>
-          <Button danger icon={<DeleteOutlined />} onClick={() => handleEliminarEstado(record)}>
-            Eliminar
-          </Button>
-        </Space>
-      )
-    }, 
-  ];
-  
-  const catalogoColumns = [ 
-      { title: 'Código', dataIndex: 'codigo', key: 'codigo' }, 
-      { title: 'Nombre', dataIndex: 'nombre', key: 'nombre' },
-      {
-        title: 'Acciones', key: 'acciones', align: 'right',
-        render: (_, record) => (
-          <Space size="small">
-            <Tooltip title="Editar cuenta">
-              <Button type="link" icon={<EditOutlined />} onClick={() => handleEditarCuenta(record)} />
-            </Tooltip>
-            <Tooltip title="Eliminar cuenta">
-               {/* BACKEND: El botón de eliminar llamará a una función que haga una petición DELETE. */}
-              <Button type="link" danger icon={<DeleteOutlined />} onClick={() => console.log('Eliminando cuenta', record.id)} />
-            </Tooltip>
-          </Space>
-        )
-      }
-  ];
+    const handleEliminarCuenta = (cuenta) => {
+        modal.confirm({
+            title: `¿Eliminar la cuenta "${cuenta.nombre_cuenta}"?`,
+            content: 'Esta acción es irreversible.',
+            okText: 'Sí, eliminar', okType: 'danger',
+            onOk: () => {
+                // ✅ CORREGIDO: URL manual para eliminar
+                router.delete(`/catalogo-cuentas/${cuenta.id}`, {
+                    onSuccess: () => message.success('Cuenta eliminada.'),
+                    preserveScroll: true,
+                });
+            }
+        });
+    };
 
-  // --- Renderizado del Componente ---
-  return (
-    <>
-      <Head title={`Estados Financieros de ${empresa.nombre}`} />
-      
-      {/* Esto es para la "miga de pan" de navegación. */}
-      <Breadcrumb style={{ marginBottom: '16px' }}>
-        <Breadcrumb.Item><Link href="/empresas">Gestionar Empresas</Link></Breadcrumb.Item>
-        <Breadcrumb.Item>{empresa.nombre}</Breadcrumb.Item>
-      </Breadcrumb>
-      
-      {/* Esto es para el encabezado de la página. */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-        <Title level={2} style={{ margin: 0 }}>Estados Financieros de {empresa.nombre}</Title>
-        <Space>
-          <Button icon={<SettingOutlined />} onClick={() => setModalCatalogoVisible(true)}>{catalogoDefinido ? 'Ver / Editar Catálogo' : 'Crear Catálogo'}</Button>
-          <Tooltip title={!catalogoDefinido ? 'Debe crear el catálogo primero' : ''}><Button icon={<PlusOutlined />} onClick={() => setModalManualVisible(true)} disabled={!catalogoDefinido}>Añadir Manualmente</Button></Tooltip>
-          <Tooltip title={!catalogoDefinido ? 'Debe crear el catálogo primero' : ''}>
-            <Button type="primary" icon={<FileExcelTwoTone twoToneColor="#09b626" />} onClick={() => setModalExcelVisible(true)} disabled={!catalogoDefinido}>
-              Importar Excel
-            </Button>
-          </Tooltip>
-        </Space>
-      </div>
+    const handleExcelLeido = () => {
+        message.success('Archivo procesado y estado financiero creado.');
+        setModalExcelVisible(false);
+        router.reload({ only: ['estadosFinancieros'] });
+    };
 
-      {/* Esto renderiza la tabla principal. */}
-      <Table columns={estadosColumns} dataSource={listaDeEstados} rowKey="id" />
+    const handleEliminarEstado = (registro) => {
+        modal.confirm({
+            title: `¿Eliminar el estado financiero del periodo ${registro.periodo}?`,
+            content: 'Esta acción no se puede deshacer.',
+            okText: 'Sí, eliminar', okType: 'danger',
+            onOk: () => {
 
-      {/* --- Modal para el Catálogo de Cuentas --- */}
-      <Modal title="Catálogo de Cuentas" open={modalCatalogoVisible} onCancel={() => setModalCatalogoVisible(false)} footer={null} width={800}>
-        <Row gutter={16} style={{marginTop: 24}}>
-          <Col span={14}><Table columns={catalogoColumns} dataSource={datosInicialesCatalogo} size="small" /></Col>
-          <Col span={10}>
-            <Card title={editingCuenta ? 'Editar Cuenta' : 'Añadir Nueva Cuenta'}>
-              <Form form={catalogoForm} layout="vertical" onFinish={handleGuardarCuenta}>
-                <Form.Item label="Código" name="codigo"><Input/></Form.Item>
-                <Form.Item label="Nombre" name="nombre"><Input/></Form.Item>
+                router.delete(`/estados-financieros/${registro.id}`, {
+                    onSuccess: () => message.success(`Estado del periodo ${registro.periodo} eliminado.`),
+                    preserveScroll: true,
+                });
+            },
+        });
+    };
+    const handleGuardarManual = () => {
+        manualForm.validateFields().then(values => {
+            // 1. Transformamos los datos del formulario al formato que el backend espera
+            const montosParaEnviar = catalogoDeCuentas.map(cuenta => ({
+                catalogo_cuenta_id: cuenta.id,
+                monto: values[`monto_${cuenta.id}`] || 0, // Usamos 0 si el campo está vacío
+            }));
+
+            const datosParaEnviar = {
+                año: values.año,
+                montos: montosParaEnviar,
+            };
+
+            // 2. Enviamos los datos con Inertia
+            router.post(`/empresas/${empresa.id}/estados-financieros`, datosParaEnviar, {
+                onStart: () => setIsSubmitting(true),
+                onSuccess: () => {
+                    setModalManualVisible(false);
+                    manualForm.resetFields();
+                    message.success('Estado financiero guardado.');
+                },
+                onError: (errors) => {
+                    console.error(errors);
+                    message.error('Error de validación. Revisa los campos.');
+                },
+                onFinish: () => setIsSubmitting(false),
+            });
+        }).catch(info => {
+            console.log('Validate Failed:', info);
+        });
+    };
+
+    // --- Columnas de las Tablas ---
+    const estadosColumns = [
+        { title: 'Periodo (Año)', dataIndex: 'periodo', key: 'periodo', render: (p) => <Tag color="blue">{p}</Tag> },
+        { title: 'Origen', dataIndex: 'origen', key: 'origen', render: (o) =>  <Tag color={o === 'Importado' ? 'green' : 'purple'}>{o.toUpperCase()}</Tag> },
+        {
+            title: 'Acciones', key: 'acciones', align: 'right',
+            render: (_, record) => (
                 <Space>
-                    <Button type="primary" htmlType="submit">{editingCuenta ? 'Actualizar' : 'Añadir'}</Button>
-                    {editingCuenta && <Button onClick={handleCancelarEdicionCuenta}>Cancelar Edición</Button>}
+
+                    <Link href={`/estados-financieros/${record.id}`}>
+                        <Button icon={<EyeOutlined />}>Ver</Button>
+                    </Link>
+                    <Button danger icon={<DeleteOutlined />} onClick={() => handleEliminarEstado(record)}>Eliminar</Button>
                 </Space>
-              </Form>
+            )
+        },
+    ];
+
+    const catalogoColumns = [
+        { title: 'Código', dataIndex: 'codigo_cuenta', key: 'codigo_cuenta' },
+        { title: 'Nombre', dataIndex: 'nombre_cuenta', key: 'nombre_cuenta' },
+        {
+            title: 'Acciones', key: 'acciones', align: 'right',
+            render: (_, record) => (
+                <Space size="small">
+                    <Tooltip title="Editar cuenta"><Button type="link" icon={<EditOutlined />} onClick={() => handleEditarCuenta(record)} /></Tooltip>
+                    <Tooltip title="Eliminar cuenta"><Button type="link" danger icon={<DeleteOutlined />} onClick={() => handleEliminarCuenta(record)} /></Tooltip>
+                </Space>
+            )
+        }
+    ];
+
+    return (
+        <>
+            <Head title={`Estados Financieros de ${empresa.nombre}`} />
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <Title level={2} style={{ margin: 0 }}>Estados Financieros de {empresa.nombre}</Title>
+                <Space>
+                    <Button icon={<SettingOutlined />} onClick={() => setModalCatalogoVisible(true)}>{catalogoDefinido ? 'Ver / Editar Catálogo' : 'Crear Catálogo'}</Button>
+                    <Tooltip title={!catalogoDefinido ? 'Debe crear el catálogo primero' : ''}><Button icon={<PlusOutlined />} onClick={() => setModalManualVisible(true)} disabled={!catalogoDefinido}>Añadir Manualmente</Button></Tooltip>
+                    <Tooltip title={!catalogoDefinido ? 'Debe crear el catálogo primero' : ''}><Button type="primary" icon={<FileExcelTwoTone twoToneColor="#09b626" />} onClick={() => setModalExcelVisible(true)} disabled={!catalogoDefinido}>Importar Excel</Button></Tooltip>
+                </Space>
+            </div>
+
+            <Card>
+                {estadosFinancieros && estadosFinancieros.length > 0 ? (
+                    <Table columns={estadosColumns} dataSource={estadosFinancieros} rowKey="id" />
+                ) : (
+                    <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={<span>Aún no hay estados financieros para esta empresa.</span>}>
+                        <Button type="primary" icon={<FileExcelTwoTone twoToneColor="#09b626" />} onClick={() => setModalExcelVisible(true)} disabled={!catalogoDefinido}>Importar el primero desde Excel</Button>
+                    </Empty>
+                )}
             </Card>
-          </Col>
-        </Row>
-      </Modal>
 
-      {/* --- Modal para Añadir Manualmente --- */}
-      <Modal title="Añadir Estado Financiero Manualmente" open={modalManualVisible} onCancel={() => setModalManualVisible(false)} okText="Guardar">
-        <Form layout="vertical" style={{marginTop: 24}}><Form.Item label="Año del Periodo"><InputNumber style={{width: '100%'}} /></Form.Item><Title level={5}>Montos</Title>{datosInicialesCatalogo.map(c => <Form.Item key={c.id} label={c.nombre}><InputNumber style={{width: '100%'}} prefix="$" /></Form.Item>)}</Form>
-      </Modal>
+            <Modal title="Catálogo de Cuentas" open={modalCatalogoVisible} onCancel={() => setModalCatalogoVisible(false)} footer={null} width={800}>
+                <Row gutter={16} style={{ marginTop: 24 }}>
+                    <Col span={14}><Table columns={catalogoColumns} dataSource={catalogoDeCuentas} size="small" rowKey="id" /></Col>
+                    <Col span={10}>
+                        <Card title={editingCuenta ? 'Editar Cuenta' : 'Añadir Nueva Cuenta'}>
+                            <Form form={catalogoForm} layout="vertical" onFinish={handleGuardarCuenta}>
+                                <Form.Item label="Código" name="codigo_cuenta" rules={[{ required: true }]}><Input /></Form.Item>
+                                <Form.Item label="Nombre" name="nombre_cuenta" rules={[{ required: true }]}><Input /></Form.Item>
+                                <Space>
+                                    <Button type="primary" htmlType="submit">{editingCuenta ? 'Actualizar' : 'Añadir'}</Button>
+                                    {editingCuenta && <Button onClick={handleCancelarEdicionCuenta}>Cancelar</Button>}
+                                </Space>
+                            </Form>
+                        </Card>
+                    </Col>
+                </Row>
+            </Modal>
 
-      {/* --- Modal para Importar Excel --- */}
-      <Modal 
-        title={`Importar Estado Financiero para ${empresa.nombre}`} 
-        open={modalExcelVisible} 
-        onCancel={() => setModalExcelVisible(false)} 
-        footer={null}
-      >
-        <div style={{marginTop: 24, marginBottom: 24}}>
-          <SubidaExcel 
-            uploadRoute="empresas.estados-financieros.importar"
-            onLeido={handleExcelLeido} 
-          />
-        </div>
-      </Modal>
-    </>
-  );
+            <Modal
+                title="Añadir Estado Financiero Manualmente"
+                open={modalManualVisible}
+                onCancel={() => setModalManualVisible(false)}
+                onOk={handleGuardarManual}
+                okText="Guardar"
+                confirmLoading={isSubmitting} // Muestra el spinner en el botón
+            >
+                <Form form={manualForm} layout="vertical" style={{ marginTop: 24 }}>
+                    <Form.Item
+                        label="Año del Periodo"
+                        name="año"
+                        rules={[{ required: true, message: 'El año es obligatorio.' }]}
+                    >
+                        <InputNumber style={{ width: '100%' }} placeholder="Ej: 2025" />
+                    </Form.Item>
+                    <Title level={5}>Montos</Title>
+                    {catalogoDeCuentas.map(c => (
+                        <Form.Item
+                            key={c.id}
+                            label={`${c.codigo_cuenta} - ${c.nombre_cuenta}`}
+                            name={`monto_${c.id}`} // Nombre dinámico para cada input
+                            rules={[{ required: true, message: 'El monto es obligatorio.' }]}
+                        >
+                            <InputNumber style={{ width: '100%' }} prefix="$" />
+                        </Form.Item>
+                    ))}
+                </Form>
+            </Modal>
+
+            <Modal title={`Importar Estado Financiero para ${empresa.nombre}`} open={modalExcelVisible} onCancel={() => setModalExcelVisible(false)} footer={null}>
+                <div style={{ marginTop: 24, marginBottom: 24 }}>
+
+                    <SubidaExcel uploadRoute={`/empresas/${empresa.id}/estados-financieros/importar`} onLeido={handleExcelLeido} />
+                </div>
+            </Modal>
+        </>
+    );
 }
 
-// Esto es para aplicar el layout principal.
 EstadosFinancierosIndex.layout = page => <AppLayout>{page}</AppLayout>;
