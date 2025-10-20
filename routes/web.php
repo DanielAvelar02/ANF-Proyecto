@@ -6,6 +6,7 @@ use App\Http\Controllers\TipoEmpresaController; // Controlador de Tipos de Empre
 use App\Http\Controllers\EmpresaController; // Controlador de Empresas
 use App\Http\Controllers\EstadoFinancieroController; // Controlador de Estados Financieros
 use App\Http\Controllers\AnalisisRatiosController; // Controlador de Análisis de Ratios
+use App\Http\Controllers\AnalisisHorizontalController; // Controlador de Análisis Horizontal
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -29,4 +30,7 @@ Route::middleware('auth')->group(function () {
     Route::resource('/estados-financieros', EstadoFinancieroController::class)->except(['index']); // Excluimos index para no chocar con la ruta de arriba
     Route::resource('/empresas', EmpresaController::class);
     Route::get('/analisis-ratios', [AnalisisRatiosController::class, 'index'])->name('analisis-ratios.index');
+
+    // Rutas para Análisis Horizontal
+    Route::get('/analisis-horizontal', [AnalisisHorizontalController::class, 'index'])->name('analisis-horizontal.index');
 });

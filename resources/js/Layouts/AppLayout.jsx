@@ -30,8 +30,10 @@ const items = [
         ...getItem('Análisis Ratios', '2', <BarChartOutlined />),
         onClick: () => router.visit('/analisis-ratios'),
     },
-    getItem('Análisis Horizontal y Vertical', '3', <TableOutlined />),
-
+    {
+        ...getItem('Análisis Horizontal', '3', <TableOutlined />),
+        onClick: () => router.visit('/analisis-horizontal'),
+    },
     {
         ...getItem('Proyección Ventas', '4', <FundProjectionScreenOutlined />),
         onClick: () => router.visit('/proyecciones'),
