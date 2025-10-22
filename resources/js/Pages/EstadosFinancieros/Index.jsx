@@ -9,7 +9,7 @@ const { Title } = Typography;
 const { useApp } = AntApp;
 
 export default function EstadosFinancierosIndex({ empresa, estadosFinancieros, catalogoDeCuentas }) {
-    const { message ,modal} = useApp();
+    const { message, modal } = useApp();
     const [catalogoForm] = Form.useForm();
     const [manualForm] = Form.useForm();
     const [modalCatalogoVisible, setModalCatalogoVisible] = useState(false);
@@ -125,12 +125,11 @@ export default function EstadosFinancierosIndex({ empresa, estadosFinancieros, c
     // --- Columnas de las Tablas ---
     const estadosColumns = [
         { title: 'Periodo (Año)', dataIndex: 'periodo', key: 'periodo', render: (p) => <Tag color="blue">{p}</Tag> },
-        { title: 'Origen', dataIndex: 'origen', key: 'origen', render: (o) =>  <Tag color={o === 'Importado' ? 'green' : 'purple'}>{o.toUpperCase()}</Tag> },
+        { title: 'Origen', dataIndex: 'origen', key: 'origen', render: (o) => <Tag color={o === 'Importado' ? 'green' : 'purple'}>{o.toUpperCase()}</Tag> },
         {
             title: 'Acciones', key: 'acciones', align: 'right',
             render: (_, record) => (
                 <Space>
-
                     <Link href={`/estados-financieros/${record.id}`}>
                         <Button icon={<EyeOutlined />}>Ver</Button>
                     </Link>
@@ -156,81 +155,83 @@ export default function EstadosFinancierosIndex({ empresa, estadosFinancieros, c
 
     return (
         <>
+            {/* Título de la página y breadcrumb */}
+            <title>ANF - Estados Financieros</title>
             <Head title={`Estados Financieros de ${empresa.nombre}`} />
-
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                <Title level={2} style={{ margin: 0 }}>Estados Financieros de {empresa.nombre}</Title>
+            <Card title={`Estados Financieros de ${empresa.nombre}`} extra={
                 <Space>
                     <Button icon={<SettingOutlined />} onClick={() => setModalCatalogoVisible(true)}>{catalogoDefinido ? 'Ver / Editar Catálogo' : 'Crear Catálogo'}</Button>
                     <Tooltip title={!catalogoDefinido ? 'Debe crear el catálogo primero' : ''}><Button icon={<PlusOutlined />} onClick={() => setModalManualVisible(true)} disabled={!catalogoDefinido}>Añadir Manualmente</Button></Tooltip>
                     <Tooltip title={!catalogoDefinido ? 'Debe crear el catálogo primero' : ''}><Button type="primary" icon={<FileExcelTwoTone twoToneColor="#09b626" />} onClick={() => setModalExcelVisible(true)} disabled={!catalogoDefinido}>Importar Excel</Button></Tooltip>
                 </Space>
-            </div>
+            }>
+                    {estadosFinancieros && estadosFinancieros.length > 0 ? (
+                        <Table columns={estadosColumns} dataSource={estadosFinancieros} rowKey="id" />
+                    ) : (
+                        <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={<span>Aún no hay estados financieros para esta empresa.</span>}>
+                            <Button type="primary" icon={<FileExcelTwoTone twoToneColor="#09b626" />} onClick={() => setModalExcelVisible(true)} disabled={!catalogoDefinido}>Importar el primero desde Excel</Button>
+                        </Empty>
+                    )}
 
-            <Card>
-                {estadosFinancieros && estadosFinancieros.length > 0 ? (
-                    <Table columns={estadosColumns} dataSource={estadosFinancieros} rowKey="id" />
-                ) : (
-                    <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={<span>Aún no hay estados financieros para esta empresa.</span>}>
-                        <Button type="primary" icon={<FileExcelTwoTone twoToneColor="#09b626" />} onClick={() => setModalExcelVisible(true)} disabled={!catalogoDefinido}>Importar el primero desde Excel</Button>
-                    </Empty>
-                )}
+                <Modal title="Catálogo de Cuentas" open={modalCatalogoVisible} onCancel={() => setModalCatalogoVisible(false)} footer={null} width={800}>
+                    <Row gutter={16} style={{ marginTop: 24 }}>
+                        <Col span={14}><Table columns={catalogoColumns} dataSource={catalogoDeCuentas} size="small" rowKey="id" /></Col>
+                        <Col span={10}>
+                            <Card title={editingCuenta ? 'Editar Cuenta' : 'Añadir Nueva Cuenta'}>
+                                <Form form={catalogoForm} layout="vertical" onFinish={handleGuardarCuenta}>
+                                    <Form.Item label="Código" name="codigo_cuenta" rules={[{ required: true }]}><Input /></Form.Item>
+                                    <Form.Item label="Nombre" name="nombre_cuenta" rules={[{ required: true }]}><Input /></Form.Item>
+                                    <Space>
+                                        <Button type="primary" htmlType="submit">{editingCuenta ? 'Actualizar' : 'Añadir'}</Button>
+                                        {editingCuenta && <Button onClick={handleCancelarEdicionCuenta}>Cancelar</Button>}
+                                    </Space>
+                                </Form>
+                            </Card>
+                        </Col>
+                    </Row>
+                </Modal>
+
+                <Modal
+                    title="Añadir Estado Financiero Manualmente"
+                    open={modalManualVisible}
+                    onCancel={() => setModalManualVisible(false)}
+                    onOk={handleGuardarManual}
+                    okText="Guardar"
+                    confirmLoading={isSubmitting} // Muestra el spinner en el botón
+                >
+                    <Form form={manualForm} layout="vertical" style={{ marginTop: 24 }}>
+                        <Form.Item
+                            label="Año del Periodo"
+                            name="año"
+                            rules={[{ required: true, message: 'El año es obligatorio.' }]}
+                        >
+                            <InputNumber style={{ width: '100%' }} placeholder="Ej: 2025" />
+                        </Form.Item>
+                        <Title level={5}>Montos</Title>
+                        {catalogoDeCuentas.map(c => (
+                            <Form.Item
+                                key={c.id}
+                                label={`${c.codigo_cuenta} - ${c.nombre_cuenta}`}
+                                name={`monto_${c.id}`} // Nombre dinámico para cada input
+                                rules={[{ required: true, message: 'El monto es obligatorio.' }]}
+                            >
+                                <InputNumber style={{ width: '100%' }} prefix="$" />
+                            </Form.Item>
+                        ))}
+                    </Form>
+                </Modal>
+
+                <Modal title={`Importar Estado Financiero para ${empresa.nombre}`} open={modalExcelVisible} onCancel={() => setModalExcelVisible(false)} footer={null}>
+                    <div style={{ marginTop: 24, marginBottom: 24 }}>
+
+                        <SubidaExcel uploadRoute={`/empresas/${empresa.id}/estados-financieros/importar`} onLeido={handleExcelLeido} />
+                    </div>
+                </Modal>
             </Card>
 
-            <Modal title="Catálogo de Cuentas" open={modalCatalogoVisible} onCancel={() => setModalCatalogoVisible(false)} footer={null} width={800}>
-                <Row gutter={16} style={{ marginTop: 24 }}>
-                    <Col span={14}><Table columns={catalogoColumns} dataSource={catalogoDeCuentas} size="small" rowKey="id" /></Col>
-                    <Col span={10}>
-                        <Card title={editingCuenta ? 'Editar Cuenta' : 'Añadir Nueva Cuenta'}>
-                            <Form form={catalogoForm} layout="vertical" onFinish={handleGuardarCuenta}>
-                                <Form.Item label="Código" name="codigo_cuenta" rules={[{ required: true }]}><Input /></Form.Item>
-                                <Form.Item label="Nombre" name="nombre_cuenta" rules={[{ required: true }]}><Input /></Form.Item>
-                                <Space>
-                                    <Button type="primary" htmlType="submit">{editingCuenta ? 'Actualizar' : 'Añadir'}</Button>
-                                    {editingCuenta && <Button onClick={handleCancelarEdicionCuenta}>Cancelar</Button>}
-                                </Space>
-                            </Form>
-                        </Card>
-                    </Col>
-                </Row>
-            </Modal>
 
-            <Modal
-                title="Añadir Estado Financiero Manualmente"
-                open={modalManualVisible}
-                onCancel={() => setModalManualVisible(false)}
-                onOk={handleGuardarManual}
-                okText="Guardar"
-                confirmLoading={isSubmitting} // Muestra el spinner en el botón
-            >
-                <Form form={manualForm} layout="vertical" style={{ marginTop: 24 }}>
-                    <Form.Item
-                        label="Año del Periodo"
-                        name="año"
-                        rules={[{ required: true, message: 'El año es obligatorio.' }]}
-                    >
-                        <InputNumber style={{ width: '100%' }} placeholder="Ej: 2025" />
-                    </Form.Item>
-                    <Title level={5}>Montos</Title>
-                    {catalogoDeCuentas.map(c => (
-                        <Form.Item
-                            key={c.id}
-                            label={`${c.codigo_cuenta} - ${c.nombre_cuenta}`}
-                            name={`monto_${c.id}`} // Nombre dinámico para cada input
-                            rules={[{ required: true, message: 'El monto es obligatorio.' }]}
-                        >
-                            <InputNumber style={{ width: '100%' }} prefix="$" />
-                        </Form.Item>
-                    ))}
-                </Form>
-            </Modal>
 
-            <Modal title={`Importar Estado Financiero para ${empresa.nombre}`} open={modalExcelVisible} onCancel={() => setModalExcelVisible(false)} footer={null}>
-                <div style={{ marginTop: 24, marginBottom: 24 }}>
 
-                    <SubidaExcel uploadRoute={`/empresas/${empresa.id}/estados-financieros/importar`} onLeido={handleExcelLeido} />
-                </div>
-            </Modal>
         </>
     );
 }

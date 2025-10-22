@@ -1,26 +1,28 @@
 import React, { useState } from 'react';
-// Importamos 'router' de Inertia para hacer peticiones al backend.
-import { Head, Link, router } from '@inertiajs/react'; 
-import { Button, Space, Table, Typography, Modal, Form, Input, Select, App as AntApp, Dropdown, Menu, Tag, Card, Grid } from 'antd';
+import { Head, Link, router } from '@inertiajs/react';
+import {
+    Button, Space, Table, Typography, Modal, Form, Input,
+    Select, App as AntApp, Dropdown, Tag, Card, Grid
+} from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, DownOutlined, UploadOutlined } from '@ant-design/icons';
 import AppLayout from '@/Layouts/AppLayout';
 import BotonEditable from "@/components/proyecciones/BotonEditable";
 
-const { Option } = Select;
 const { useApp } = AntApp;
 
-// --- Componente Principal de la Página ---
-// Recibe 'empresas' y 'tiposDeEmpresa' como props de Laravel/Inertia
 export default function EmpresasIndex({ empresas, tiposDeEmpresa }) {
     const { message } = useApp();
     const [form] = Form.useForm();
     const screens = Grid.useBreakpoint();
-
-    // --- Estados de React ---
     const [modalVisible, setModalVisible] = useState(false);
     const [registroActual, setRegistroActual] = useState(null);
 
-    // --- Funciones para el Modal ---
+    // Modal context-aware (evita warning de Modal estático)
+    const [modal, modalContextHolder] = Modal.useModal();
+
+    // Select options v5
+    const tipoOptions = (tiposDeEmpresa || []).map(t => ({ label: t.nombre, value: t.id }));
+
     const abrirModalParaCrear = () => {
         setRegistroActual(null);
         form.resetFields();
@@ -29,40 +31,42 @@ export default function EmpresasIndex({ empresas, tiposDeEmpresa }) {
 
     const abrirModalParaEditar = (registro) => {
         setRegistroActual(registro);
-        // Usamos registro.idTipo porque es la FK que recibimos y la que necesita el Select.
-        form.setFieldsValue({ nombre: registro.nombre, idTipo: registro.idTipo }); 
+        form.setFieldsValue({ nombre: registro.nombre, idTipo: registro.idTipo });
         setModalVisible(true);
     };
 
     const handleCancelar = () => {
         setModalVisible(false);
+        form.resetFields();
     };
 
-    // FUNCIÓN DE GUARDAR INTEGRADA CON INERTIA
     const handleGuardar = () => {
         form.validateFields().then(values => {
-            const datosParaGuardar = { 
-                nombre: values.nombre, 
-                idTipo: values.idTipo // El backend lo mapea a tipo_empresa_id
-            };
+            const payload = { nombre: values.nombre, idTipo: values.idTipo };
 
             if (registroActual) {
-                // Lógica de Edición: Implementar router.put/patch cuando el backend esté listo
-                // router.put(`/empresas/${registroActual.id}`, datosParaGuardar, { ... });
-                message.warning('La función de edición aún no está conectada al backend (usaría PUT/PATCH).');
-                setModalVisible(false);
-            } else {
-                // Lógica de Creación: Usamos router.post para enviar datos al método store de Laravel
-                router.post('/empresas', datosParaGuardar, {
+                // PUT /empresas/{id}
+                router.put(`/empresas/${registroActual.id}`, payload, {
                     onSuccess: () => {
-                        // Inertia recarga automáticamente la página y actualiza las props (empresas)
+                        message.success('Empresa actualizada con éxito.');
+                        setModalVisible(false);
+                    },
+                    onError: (errors) => {
+                        console.error(errors);
+                        message.error('No se pudo actualizar. Revisa los campos.');
+                    },
+                    preserveScroll: true,
+                });
+            } else {
+                // POST /empresas
+                router.post('/empresas', payload, {
+                    onSuccess: () => {
                         message.success('Empresa creada con éxito.');
-                        setModalVisible(false); // Cierra el modal
+                        setModalVisible(false);
                         form.resetFields();
                     },
                     onError: (errors) => {
-                        // Manejo de errores de validación del backend
-                        console.error("Errores:", errors);
+                        console.error(errors);
                         message.error('Error al guardar. Revisa los campos.');
                     },
                     preserveScroll: true,
@@ -72,44 +76,52 @@ export default function EmpresasIndex({ empresas, tiposDeEmpresa }) {
     };
 
     const handleEliminar = (registro) => {
-        // Lógica de Eliminación: Implementar router.delete cuando el backend esté listo
-        Modal.confirm({
+        modal.confirm({
             title: `¿Eliminar "${registro.nombre}"?`,
-            okText: 'Sí, eliminar', okType: 'danger', cancelText: 'No, cancelar',
+            content: 'Esta acción es permanente. Si la empresa tiene dependencias (estados financieros, catálogo), puede fallar.',
+            okText: 'Sí, eliminar',
+            okButtonProps: { danger: true },
+            cancelText: 'Cancelar',
             onOk: () => {
-                // router.delete(`/empresas/${registro.id}`, { ... });
-                message.warning('La función de eliminación aún no está conectada al backend (usaría DELETE).');
+                router.delete(`/empresas/${registro.id}`, {
+                    onSuccess: () => message.success(`"${registro.nombre}" fue eliminada.`),
+                    onError: () => message.error(`No se pudo eliminar "${registro.nombre}". Verifica dependencias.`),
+                    preserveScroll: true,
+                });
             }
         });
     };
 
-    // --- Definición de la Tabla ---
     const columns = [
         { title: 'ID', dataIndex: 'id', key: 'id', width: 80 },
         { title: 'Nombre de la Empresa', dataIndex: 'nombre', key: 'nombre' },
-        // Accedemos a la propiedad 'tipo.nombre' que formateamos en el controlador de Laravel
-        { title: 'Tipo de Empresa', dataIndex: 'tipo', key: 'tipo', render: (tipo) => <Tag color="blue">{tipo.nombre.toUpperCase()}</Tag> },
+        {
+            title: 'Tipo de Empresa',
+            dataIndex: 'tipo',
+            key: 'tipo',
+            render: (tipo) => <Tag color="blue">{(tipo?.nombre || 'N/A').toUpperCase()}</Tag>
+        },
         {
             title: 'Acciones',
             key: 'acciones',
             align: 'right',
             render: (_, record) => {
-                const actionsMenu = (
-                    <Menu>
-                        <Menu.Item key="gestionar" icon={<UploadOutlined />}>
-                            <Link href={`/empresas/${record.id}/estados-financieros`}>Gestionar Estados Financieros</Link>
-                        </Menu.Item>
-                        <Menu.Divider />
-                        <Menu.Item key="editar" icon={<EditOutlined />} onClick={() => abrirModalParaEditar(record)}>
-                            Editar Empresa
-                        </Menu.Item>
-                        <Menu.Item key="eliminar" icon={<DeleteOutlined />} danger onClick={() => handleEliminar(record)}>
-                            Eliminar Empresa
-                        </Menu.Item>
-                    </Menu>
-                );
+                const itemsMenu = [
+                    {
+                        key: 'gestionar',
+                        icon: <UploadOutlined />,
+                        label: <Link href={`/empresas/${record.id}/estados-financieros`}>Gestionar Estados Financieros</Link>,
+                    },
+                    { type: 'divider' },
+                    { key: 'editar', icon: <EditOutlined />, label: 'Editar' },
+                    { key: 'eliminar', icon: <DeleteOutlined />, label: 'Eliminar', danger: true },
+                ];
 
-                // Mostrar botones individuales en pantallas medianas y grandes
+                const onMenuClick = ({ key }) => {
+                    if (key === 'editar') return abrirModalParaEditar(record);
+                    if (key === 'eliminar') return handleEliminar(record);
+                };
+
                 if (screens && screens.md) {
                     return (
                         <Space size="small">
@@ -122,9 +134,8 @@ export default function EmpresasIndex({ empresas, tiposDeEmpresa }) {
                     );
                 }
 
-                // Mostrar Dropdown en pantallas pequeñas
                 return (
-                    <Dropdown overlay={actionsMenu}> 
+                    <Dropdown menu={{ items: itemsMenu, onClick: onMenuClick }}>
                         <Button>Más <DownOutlined /></Button>
                     </Dropdown>
                 );
@@ -132,19 +143,17 @@ export default function EmpresasIndex({ empresas, tiposDeEmpresa }) {
         },
     ];
 
-    // --- Renderizado del Componente ---
     return (
         <>
-            <title>ANF - Empresas</title>
             <Head title="Gestión de Empresas" />
+            {modalContextHolder}
+
             <Card
                 title="Gestión de Empresas"
                 extra={<Button type="primary" icon={<PlusOutlined />} onClick={abrirModalParaCrear}>Crear Nueva Empresa</Button>}
             >
-                {/* Usamos la prop 'empresas' que viene de Laravel */}
                 <Table columns={columns} dataSource={empresas} rowKey="id" />
 
-                {/* --- Modal para Crear/Editar --- */}
                 <Modal
                     title={registroActual ? 'Editar Empresa' : 'Crear Nueva Empresa'}
                     open={modalVisible}
@@ -154,16 +163,20 @@ export default function EmpresasIndex({ empresas, tiposDeEmpresa }) {
                     cancelText="Cancelar"
                 >
                     <Form form={form} layout="vertical" style={{ marginTop: 24 }}>
-                        <Form.Item name="nombre" label="Nombre de la Empresa" rules={[{ required: true, message: 'El nombre es obligatorio' }]}>
+                        <Form.Item
+                            name="nombre"
+                            label="Nombre de la Empresa"
+                            rules={[{ required: true, message: 'El nombre es obligatorio' }]}
+                        >
                             <Input />
                         </Form.Item>
-                        <Form.Item name="idTipo" label="Tipo de Empresa" rules={[{ required: true, message: 'Seleccione un tipo' }]}>
-                            <Select placeholder="Seleccione un tipo">
-                                {/* Usamos la prop 'tiposDeEmpresa' que viene de Laravel */}
-                                {tiposDeEmpresa.map(tipo => (
-                                    <Option key={tipo.id} value={tipo.id}>{tipo.nombre}</Option>
-                                ))}
-                            </Select>
+
+                        <Form.Item
+                            name="idTipo"
+                            label="Tipo de Empresa"
+                            rules={[{ required: true, message: 'Seleccione un tipo' }]}
+                        >
+                            <Select placeholder="Seleccione un tipo" options={tipoOptions} />
                         </Form.Item>
                     </Form>
                 </Modal>
@@ -172,5 +185,4 @@ export default function EmpresasIndex({ empresas, tiposDeEmpresa }) {
     );
 }
 
-// CORREGIDO: Sintaxis JSX correcta para aplicar el layout principal.
 EmpresasIndex.layout = page => <AppLayout>{page}</AppLayout>;

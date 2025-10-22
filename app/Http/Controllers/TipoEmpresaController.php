@@ -6,6 +6,7 @@ use App\Models\TipoEmpresa;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Redirect;
+use Illuminate\Validation\Rule;
 
 class TipoEmpresaController extends Controller
 {
@@ -14,8 +15,10 @@ class TipoEmpresaController extends Controller
      */
     public function index()
     {
-        $tiposDeEmpresa = TipoEmpresa::all();
-
+        // Trae id, nombre, descripcion y el conteo de empresas asociadas
+        $tiposDeEmpresa = TipoEmpresa::withCount('empresas')
+            ->get(['id', 'nombre', 'descripcion']);
+            
         return Inertia::render('TiposEmpresa/Index', [
             'tiposDeEmpresa' => $tiposDeEmpresa,
         ]);
@@ -44,7 +47,12 @@ class TipoEmpresaController extends Controller
     {
         $validated = $request->validate([
             // La validación 'unique' debe ignorar el registro actual al actualizar
-            'nombre' => ['required', 'string', 'max:100', 'unique:tipo_empresas,nombre,' . $tipoEmpresa->id],
+            'nombre' => [
+                'required',
+                'string',
+                'max:100',
+                Rule::unique('tipo_empresas', 'nombre')->ignore($tipoEmpresa->id),
+            ],
             'descripcion' => ['nullable', 'string'],
         ]);
 

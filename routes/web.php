@@ -11,6 +11,8 @@ use App\Http\Controllers\AnalisisHorizontalController; // Controlador de Anális
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
+use function Psy\sh;
+
 Route::get('/', fn() => redirect('/login'));
 
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
@@ -29,14 +31,17 @@ Route::middleware('auth')->group(function () {
     Route::resource('empresas.catalogo-cuentas', CatalogoCuentaController::class)
         ->shallow()
         ->only(['store', 'update', 'destroy']);
-    Route::resource('/tipos-empresa', TipoEmpresaController::class);
     Route::get('/empresas/{empresa}/estados-financieros', [EstadoFinancieroController::class, 'index'])->name('empresas.estados-financieros.index');
     Route::post('/empresas/{empresa}/estados-financieros', [EstadoFinancieroController::class, 'store'])->name('empresas.estados-financieros.store');
     Route::resource('/estados-financieros', EstadoFinancieroController::class)->except(['index'])->parameters(['estados-financieros' => 'estadoFinanciero']); // Excluimos index para no chocar con la ruta de arriba
+
+    //Rutas gestión Empresas
     Route::resource('/empresas', EmpresaController::class);
+    Route::resource('/tipos-empresa', TipoEmpresaController::class)->parameters(['tipos-empresa' => 'tipoEmpresa'])->except(['create', 'edit', 'show']);
+
     Route::get('/analisis-ratios', [AnalisisRatiosController::class, 'index'])->name('analisis-ratios.index');
 
     //Rutas Análisis Horizontal
     Route::get('/analisis-horizontal', [AnalisisHorizontalController::class, 'index'])->name('analisis-horizontal.index');
-    
+
 });

@@ -7,6 +7,8 @@ use App\Models\TipoEmpresa;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Redirect;
+use Illuminate\Validation\Rule;
+use Illuminate\Database\QueryException;
 
 class EmpresaController extends Controller
 {
@@ -15,24 +17,17 @@ class EmpresaController extends Controller
      */
     public function index()
     {
-        // 1. Obtener todas las empresas con su relación de tipo (eager loading)
         $empresas = Empresa::with('tipo:id,nombre')->get()->map(function ($empresa) {
-            // Adaptar la estructura al formato esperado por el frontend de React
             return [
                 'id' => $empresa->id,
                 'nombre' => $empresa->nombre,
-                // Formato para Antd Table: { tipo: { nombre: '...' }, idTipo: 1 }
-                'tipo' => [
-                    'nombre' => $empresa->tipo->nombre ?? 'N/A',
-                ],
+                'tipo' => ['nombre' => $empresa->tipo->nombre ?? 'N/A'],
                 'idTipo' => $empresa->tipo_empresa_id,
             ];
         });
 
-        // 2. Obtener todos los tipos de empresa
         $tiposDeEmpresa = TipoEmpresa::select('id', 'nombre')->get();
 
-        // 3. Renderizar la vista Inertia, pasando los datos como props
         return Inertia::render('Empresas/Index', [
             'empresas' => $empresas,
             'tiposDeEmpresa' => $tiposDeEmpresa,
@@ -40,25 +35,53 @@ class EmpresaController extends Controller
     }
 
     /**
-     * Almacena una nueva empresa en la base de datos.
+     * Crea una empresa.
      */
     public function store(Request $request)
     {
-        // 1. Validar los datos de entrada
         $validated = $request->validate([
             'nombre' => ['required', 'string', 'max:150'],
-            'idTipo' => ['required', 'exists:tipo_empresas,id'], // Asegura que idTipo exista en la tabla tipo_empresas
+            'idTipo' => ['required', 'integer', 'exists:tipo_empresas,id'],
         ]);
 
-        // 2. Crear la nueva empresa
         Empresa::create([
             'nombre' => $validated['nombre'],
-            'tipo_empresa_id' => $validated['idTipo'], // Mapear idTipo a tipo_empresa_id
+            'tipo_empresa_id' => $validated['idTipo'],
         ]);
 
-        // 3. Redirigir a la misma página (refresca los props) con un mensaje de éxito
         return Redirect::route('empresas.index')->with('success', 'Empresa creada con éxito.');
     }
-    
-    // ... aquí irían los métodos update y destroy
+
+    /**
+     * Actualiza una empresa.
+     */
+    public function update(Request $request, Empresa $empresa)
+    {
+        $validated = $request->validate([
+            'nombre' => ['required', 'string', 'max:150'],
+            'idTipo' => ['required', 'integer', 'exists:tipo_empresas,id'],
+        ]);
+
+        $empresa->update([
+            'nombre' => $validated['nombre'],
+            'tipo_empresa_id' => $validated['idTipo'],
+        ]);
+
+        return Redirect::route('empresas.index')->with('success', 'Empresa actualizada con éxito.');
+    }
+
+    /**
+     * Elimina una empresa.
+     */
+    public function destroy(Empresa $empresa)
+    {
+        try {
+            $nombre = $empresa->nombre;
+            $empresa->delete();
+            return Redirect::route('empresas.index')->with('success', "La empresa '{$nombre}' fue eliminada.");
+        } catch (QueryException $e) {
+            // Por ejemplo, violación de integridad si hay estados financieros / catálogo asociados.
+            return Redirect::back()->with('error', 'No fue posible eliminar la empresa: tiene dependencias asociadas.');
+        }
+    }
 }
