@@ -22,23 +22,13 @@ function getItem(label, key, icon, children) {
 
 const items = [
     // Estas son las opciones del menú lateral
+
     {
         ...getItem('Inicio', '1', <HomeOutlined />),
         onClick: () => router.visit('/dashboard'),
     },
-    {
-        ...getItem('Análisis Ratios', '2', <BarChartOutlined />),
-        onClick: () => router.visit('/analisis-ratios'),
-    },
-    getItem('Análisis Horizontal y Vertical', '3', <TableOutlined />),
-
-    {
-        ...getItem('Proyección Ventas', '4', <FundProjectionScreenOutlined />),
-        onClick: () => router.visit('/proyecciones'),
-    },
-
     // Empresas como principal con "Tipos de Empresa" como subitem
-    getItem('Gestión', '5', <ApartmentOutlined />, [
+    getItem('Gestión', '2', <ApartmentOutlined />, [
         {
             ...getItem('Empresas', 'empresas:listado'),
             onClick: () => router.visit('/empresas'),
@@ -48,8 +38,23 @@ const items = [
             onClick: () => router.visit('/tipos-empresa'),
         },
     ]),
+    {
+        ...getItem('Análisis Ratios', '3', <BarChartOutlined />),
+        onClick: () => router.visit('/analisis-ratios'),
+    },
+    {
+        ...getItem('Analisis Horizontal', '4', <TableOutlined />),
+        onClick: () => router.visit('/analisis-horizontal'),
+    },
 
-    
+    {
+        ...getItem('Proyección Ventas', '5', <FundProjectionScreenOutlined />),
+        onClick: () => router.visit('/proyecciones'),
+    },
+
+
+
+
 ]
 
 // Componente principal del layout, que envuelve las páginas
@@ -76,11 +81,11 @@ export default function AppLayout({ children, title = 'ANF' }) {
 
     const { selectedKey, defaultOpenKeys } = useMemo(() => {
         const path = currentPath
-        if (path.startsWith('/analisis-ratios')) return { selectedKey: '2', defaultOpenKeys: [] }
-        if (path.startsWith('/analisis-hv') || path.startsWith('/analisis-horizontal')) return { selectedKey: '3', defaultOpenKeys: [] }
-        if (path.startsWith('/proyecciones')) return { selectedKey: '4', defaultOpenKeys: [] }
-        if (path.startsWith('/tipos-empresa')) return { selectedKey: '5', defaultOpenKeys: ['5'] }
-        if (path.startsWith('/empresas')) return { selectedKey: '5', defaultOpenKeys: ['5'] }
+        if (path.startsWith('/proyecciones')) return { selectedKey: '5', defaultOpenKeys: [] }
+        if (path.startsWith('/analisis-hv') || path.startsWith('/analisis-horizontal')) return { selectedKey: '4', defaultOpenKeys: [] }
+        if (path.startsWith('/analisis-ratios')) return { selectedKey: '3', defaultOpenKeys: [] }
+        if (path.startsWith('/tipos-empresa')) return { selectedKey: '2', defaultOpenKeys: ['2'] }
+        if (path.startsWith('/empresas')) return { selectedKey: '2', defaultOpenKeys: ['2'] }
         if (path.startsWith('/dashboard') || path === '/') return { selectedKey: '1', defaultOpenKeys: [] }
         return { selectedKey: '1', defaultOpenKeys: [] }
     }, [currentPath])

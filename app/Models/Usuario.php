@@ -13,6 +13,6 @@ class Usuario extends Authenticatable
     public $timestamps = false;
     protected $keyType = 'string';
 
-    protected $fillable = ['IdUsuario','NomUsuario','Clave']; // campos asignables masivamente
+    protected $fillable = ['IdUsuario', 'NomUsuario', 'Clave']; // campos asignables masivamente
     protected $hidden = ['Clave']; // no exponerla en JSON
 }
