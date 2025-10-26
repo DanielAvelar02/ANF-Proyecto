@@ -8,8 +8,9 @@ import {
     ApartmentOutlined,
     BarChartOutlined,
     HomeOutlined,
+    AreaChartOutlined,
 } from '@ant-design/icons'
-import { Layout, Menu, theme, Button, Space, Typography, ConfigProvider, App as AntApp } from 'antd'
+import { Layout, Menu, theme, Button, Space, Typography, ConfigProvider, App as AntApp, Tag} from 'antd'
 
 // Extraer componentes de Layout y Typography de Ant Design
 const { Header, Content, Footer, Sider } = Layout
@@ -114,14 +115,17 @@ export default function AppLayout({ children, title = 'ANF' }) {
                             alignItems: 'center',
                             justifyContent: 'space-between',
                             gap: 16,
+                            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.05)',
                         }}
                     >
                         {/* Título o logo del sistema */}
-                        <Text strong style={{ fontSize: 18 }}>Sistema de Analisis Financiero</Text>
+                        <Space align="center">
+                            <AreaChartOutlined style={{ fontSize: '20px', color: '#1890ff' }} />
+                            <Text strong style={{ fontSize: 18 }}>Sistema de Analisis Financiero</Text>
+                        </Space>
 
                         <Space size={12} align="center">
-                            {/* Mostrar el nombre del usuario y botón de logout */}
-                            <Text><UserOutlined /> {userName}</Text>
+                            <Text>Nombre: <Tag color="blue">{userName}</Tag></Text>
                             <Button icon={<LogoutOutlined />} onClick={doLogout} danger>
                                 Cerrar Sesión
                             </Button>
@@ -138,6 +142,7 @@ export default function AppLayout({ children, title = 'ANF' }) {
                                 minHeight: 360,
                                 background: colorBgContainer,
                                 borderRadius: borderRadiusLG,
+                                boxShadow: '0 2px 6px rgba(0, 0, 0, 0.3)',
                             }}
                         >
                             {/* Proveer el tema de Ant Design a toda la aplicación */}
@@ -152,7 +157,7 @@ export default function AppLayout({ children, title = 'ANF' }) {
                     </Content>
 
                     {/* Pie de página */}
-                    <Footer style={{ textAlign: 'center' }}>
+                    <Footer style={{ textAlign: 'center', marginTop: '24px' }}>
                         Sistema de Analisis Financiero ©{new Date().getFullYear()} Created by Equipo #
                     </Footer>
                 </Layout>

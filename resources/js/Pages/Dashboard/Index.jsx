@@ -1,16 +1,11 @@
-// resources/js/Pages/Dashboard/Index.jsx
-
-// --- Importaciones ---
-import React, { useState } from 'react'; // Añadimos useState para el selector
-// Añadimos 'router' para la navegación desde el Select
+import React, { useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react'; 
 import { Row, Col, Card, Typography, List, Button, Select, Space } from 'antd';
 // Importamos los íconos necesarios
 import { 
     LineChartOutlined, 
-    CalculatorOutlined, 
-    BarChartOutlined,        // Icono que faltaba
-    AreaChartOutlined,       // Icono que faltaba
+    CalculatorOutlined,       
+    AreaChartOutlined,       
     FundProjectionScreenOutlined, 
     FileExcelOutlined, 
     PercentageOutlined, 
@@ -54,14 +49,12 @@ export default function DashboardIndex() {
   const verde = '#52c41a';
   const naranja = '#fa8c16';
 
-  // MODIFICADO: Estilo para los botones oscuros de "Acceder al Módulo"
   const darkButtonStyle = {
       backgroundColor: '#262626', // Color de fondo oscuro
       color: '#ffffff', // Color de texto blanco
       borderColor: '#262626' // Borde del mismo color
   };
 
-  // MODIFICADO: Estado para guardar la ruta seleccionada en la tarjeta de Empresas
   const [selectedEmpresaRoute, setSelectedEmpresaRoute] = useState('/empresas');
 
   return (
@@ -81,13 +74,11 @@ export default function DashboardIndex() {
         {/* --- Tarjeta de Análisis Financiero --- */}
         <Col xs={24} lg={12} style={{ marginBottom: '24px' }}> {/* Ocupa la mitad en pantallas grandes */}
           <Card
-            style={{ borderLeft: `5px solid ${azul}`, height: '100%' }} 
+            style={{ borderLeft: `5px solid ${azul}`, height: '100%', boxShadow: '0 2px 4px rgba(0, 0, 0, 0.3)' }} 
             bordered={false}
-            // MODIFICADO: Nos aseguramos que el color se aplique al icono
             title={<Space style={{ color: azul }}><CalculatorOutlined /> Análisis Financiero</Space>}
             actions={[
               <Link href="/analisis-ratios">
-                {/* MODIFICADO: Aplicamos el estilo oscuro al botón */}
                 <Button style={darkButtonStyle} icon={<ArrowRightOutlined />}>Acceder al Módulo</Button>
               </Link>
             ]}
@@ -96,7 +87,6 @@ export default function DashboardIndex() {
               Genera informes de análisis financieros comparativos.
             </Paragraph>
             <Row gutter={16} style={{ marginBottom: '16px' }}>
-              {/* Iconos restaurados */}
               <Col span={12}><Text><AreaChartOutlined /> Del Sector</Text></Col>
               <Col span={12}><Text><LineChartOutlined /> Ratios Financieros</Text></Col>
               <Col span={12}><Text><FundProjectionScreenOutlined /> Gráficos Comparativos</Text></Col>
@@ -113,13 +103,11 @@ export default function DashboardIndex() {
         {/* --- Tarjeta de Proyección de Ventas --- */}
         <Col xs={24} lg={12} style={{ marginBottom: '24px' }}> {/* Ocupa la otra mitad */}
           <Card
-            style={{ borderLeft: `5px solid ${verde}`, height: '100%' }}
+            style={{ borderLeft: `5px solid ${verde}`, height: '100%', boxShadow: '0 2px 4px rgba(0, 0, 0, 0.3)' }}
             bordered={false}
-             // MODIFICADO: Nos aseguramos que el color se aplique al icono
             title={<Space style={{ color: verde }}><FundProjectionScreenOutlined /> Proyección de Ventas</Space>}
             actions={[
               <Link href="/proyecciones">
-                {/* MODIFICADO: Aplicamos el estilo oscuro al botón */}
                 <Button style={darkButtonStyle} icon={<ArrowRightOutlined />}>Acceder al Módulo</Button>
               </Link>
             ]}
@@ -149,14 +137,11 @@ export default function DashboardIndex() {
           {/* --- Tarjeta de Empresas --- */}
          <Col xs={24} lg={12}> {/* Ocupa la mitad o todo el ancho si quieres */}
           <Card
-            style={{ borderLeft: `5px solid ${naranja}`, height: '100%' }}
+            style={{ borderLeft: `5px solid ${naranja}`, height: '100%', boxShadow: '0 2px 4px rgba(0, 0, 0, 0.3)' }}
             bordered={false}
-             // MODIFICADO: Nos aseguramos que el color se aplique al icono
             title={<Space style={{ color: naranja }}><BankOutlined /> Gestión de Empresas</Space>}
             actions={[
-              // MODIFICADO: El Link ahora usa el estado 'selectedEmpresaRoute'.
               <Link href={selectedEmpresaRoute}> 
-                {/* MODIFICADO: Aplicamos el estilo oscuro al botón */}
                 <Button style={darkButtonStyle} icon={<ArrowRightOutlined />}>Acceder al Módulo</Button>
               </Link>
             ]}
@@ -166,7 +151,7 @@ export default function DashboardIndex() {
             </Paragraph>
             <Space direction="vertical" style={{width: '100%', marginBottom: '16px'}}>
                 <Text>Seleccionar vista para acceder:</Text>
-                {/* MODIFICADO: onChange ahora actualiza el estado, no navega directamente. */}
+                {/*onChange ahora actualiza el estado, no navega directamente. */}
                 <Select 
                     defaultValue={selectedEmpresaRoute} 
                     style={{ width: '100%' }} 
@@ -189,5 +174,4 @@ export default function DashboardIndex() {
   );
 }
 
-// Esto es para aplicar el layout principal.
 DashboardIndex.layout = page => <AppLayout>{page}</AppLayout>;
