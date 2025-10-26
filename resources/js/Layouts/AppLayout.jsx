@@ -129,7 +129,7 @@ export default function AppLayout({ children, title = 'ANF' }) {
                     </Header>
 
                     {/* Contenido principal de la página */}
-                    <Content style={{ margin: '0 15px' }}>
+                    <Content style={{ margin: '16px 15px 0 15px' }}>
                         {/* Contenedor del contenido */}
                         <div
                             /* Estilos para el contenedor del contenido */
