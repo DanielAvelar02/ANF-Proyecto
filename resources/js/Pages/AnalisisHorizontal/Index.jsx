@@ -1,35 +1,60 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Head } from '@inertiajs/react';
-import { Card, Space, Form, Select, Button, Row, Col, App as AntApp, DatePicker, Table, Typography } from 'antd';
+import {
+  Card, Space, Form, Select, Button, Row, Col,
+  App as AntApp, DatePicker, Table, Typography
+} from 'antd';
 import AppLayout from '@/Layouts/AppLayout';
 import dayjs from 'dayjs';
 import { ClearOutlined } from '@ant-design/icons';
+import BotonEditable from "@/components/proyecciones/BotonEditable";
 
 const { RangePicker } = DatePicker;
 const { Text } = Typography;
 
-export default function Index({ empresas = [], cuentas = [], anios = [] }) {
+export default function Index({ empresas = [], anios = [] }) {
   const { message } = AntApp.useApp();
   const [form] = Form.useForm();
+
   const [loading, setLoading] = useState(false);
-  const [rows, setRows] = useState([]);
-  const [cuentasOpts, setCuentasOpts] = useState(cuentas);
+  const [years, setYears] = useState([]);         // años disponibles para la empresa
+  const [rows, setRows] = useState([]);           // filas de cuentas
+  const [periodoSel, setPeriodoSel] = useState({ desde: null, hasta: null }); // <-- periodo seleccionado
 
-  useEffect(() => {
-    setCuentasOpts(cuentas); // por si vienen precargadas
-  }, [cuentas]);
-
+  // Cargar años al cambiar empresa
   const onEmpresaChange = async (empresa_id) => {
-    form.setFieldsValue({ cuenta_id: undefined });
-    if (!empresa_id) { setCuentasOpts([]); return; }
+    form.setFieldsValue({ periodo: undefined });
+    setYears([]);
+    setRows([]);
+    setPeriodoSel({ desde: null, hasta: null });
+
+    if (!empresa_id) return;
+
     try {
-      const res = await fetch(`/analisis-horizontal/cuentas?empresa_id=${empresa_id}`);
+      const res = await fetch(`/analisis-horizontal/anios?empresa_id=${empresa_id}`);
       const json = await res.json();
-      setCuentasOpts(json.options || []);
+      const ys = (json?.anios || []).map(Number);
+      setYears(ys);
+      if (!ys.length) {
+        message.info('La empresa no tiene años cargados.');
+      } else {
+        // por defecto: últimos hasta 5 años disponibles
+        const tail = ys.slice(-5);
+        const from = tail[0] ?? ys[0];
+        const to = tail[tail.length - 1] ?? ys[ys.length - 1];
+        form.setFieldsValue({
+          periodo: [dayjs().year(from), dayjs().year(to)],
+        });
+      }
     } catch {
-      message.error('No se pudieron cargar las cuentas de la empresa.');
-      setCuentasOpts([]);
+      message.error('No se pudieron cargar los años de la empresa.');
     }
+  };
+
+  // Deshabilitar años fuera de los disponibles
+  const disabledDate = (current) => {
+    if (!current || !years.length) return true;
+    return !years.includes(current.year());
   };
 
   const fmt = (n) =>
@@ -39,48 +64,91 @@ export default function Index({ empresas = [], cuentas = [], anios = [] }) {
 
   const fetchDatos = async () => {
     try {
-      const { empresa_id, cuenta_id, periodo } = await form.validateFields();
+      const { empresa_id, periodo } = await form.validateFields();
       const desde = periodo?.[0]?.year();
       const hasta = periodo?.[1]?.year();
+
       setLoading(true);
-      const qs = new URLSearchParams({ empresa_id, cuenta_id, desde, hasta }).toString();
+      const qs = new URLSearchParams({ empresa_id, desde, hasta }).toString();
       const res = await fetch(`/analisis-horizontal/datos?${qs}`);
+      if (!res.ok) throw new Error('No se pudo obtener datos.');
       const json = await res.json();
 
-      // calcula variaciones si el backend aún no las envía
-      const serie = (json.data || []).map(d => ({ anio: +d.anio, valor: +d.valor })).sort((a,b)=>a.anio-b.anio);
-      const out = [];
-      let prev = null;
-      for (const d of serie) {
-        const varAbs = prev !== null ? d.valor - prev : null;
-        const varPct = prev !== null ? (varAbs / (Math.abs(prev) || 1)) * 100 : null;
-        out.push({ key: String(d.anio), anio: d.anio, valor: d.valor, variacion_abs: varAbs, variacion_pct: varPct });
-        prev = d.valor;
-      }
-      setRows(out);
+      const rs = (json.rows || []).map(r => ({ ...r, key: String(r.cuenta_id) }));
+      setRows(rs);
+      setPeriodoSel({ desde, hasta }); // <-- guardamos el periodo elegido para las columnas
     } catch (e) {
-      if (!e?.errorFields) message.error('Ocurrió un error al calcular.');
+      if (!e?.errorFields) message.error(e?.message || 'Ocurrió un error al calcular.');
     } finally {
       setLoading(false);
     }
   };
 
-  const limpiar = () => { form.resetFields(); setRows([]); };
+  const limpiar = () => {
+    form.resetFields();
+    setYears([]);
+    setRows([]);
+    setPeriodoSel({ desde: null, hasta: null });
+  };
 
-  const columns = [
-    { title: 'Año', dataIndex: 'anio', key: 'anio', width: 100 },
-    { title: 'Valor', dataIndex: 'valor', key: 'valor', align: 'right', render: v => fmt(v) },
-    {
-      title: 'Variación',
-      children: [
-        { title: 'Absoluta', dataIndex: 'variacion_abs', key: 'variacion_abs', align: 'right', render: v => (v===null?'—':fmt(v)) },
-        { title: '%', dataIndex: 'variacion_pct', key: 'variacion_pct', align: 'right',
-          render: v => v===null ? '—' : <Text type={v>0?'success':v<0?'danger':undefined}>{v.toFixed(2)} %</Text> },
-      ],
-    },
-  ];
+  // Columnas requeridas
+  const columns = useMemo(() => {
+    const start = periodoSel.desde;
+    const end = periodoSel.hasta;
 
-  const y = dayjs(); const defaultRange = [y.clone().year(y.year()-4), y.clone()];
+    return [
+      { title: 'Código', dataIndex: 'codigo', key: 'codigo', width: 120, fixed: 'left' },
+      { title: 'Cuenta', dataIndex: 'nombre', key: 'nombre', fixed: 'left' },
+
+      {
+        title: `Periodo inicio${start ? ` (${start})` : ''}`,
+        key: 'periodo_inicio',
+        align: 'right',
+        render: (_, r) => {
+          const v = start != null ? r[`y${start}`] : null;
+          return (v == null) ? '—' : fmt(v);
+        },
+      },
+      {
+        title: `Periodo fin${end ? ` (${end})` : ''}`,
+        key: 'periodo_fin',
+        align: 'right',
+        render: (_, r) => {
+          const v = end != null ? r[`y${end}`] : null;
+          return (v == null) ? '—' : fmt(v);
+        },
+      },
+      {
+        title: 'Variación absoluta',
+        key: 'variacion_abs_total',
+        align: 'right',
+        render: (_, r) => {
+          if (start == null || end == null) return '—';
+          const s = r[`y${start}`];
+          const e = r[`y${end}`];
+          if (s == null || e == null) return '—';
+          return fmt(e - s);
+        },
+      },
+      {
+        title: 'Variación relativa',
+        key: 'variacion_rel_total',
+        align: 'right',
+        render: (_, r) => {
+          if (start == null || end == null) return '—';
+          const s = r[`y${start}`];
+          const e = r[`y${end}`];
+          if (s == null || e == null || s === 0) return '—';
+          const pct = ((e - s) / s) * 100;
+          return (
+            <Text type={pct > 0 ? 'success' : pct < 0 ? 'danger' : undefined}>
+              {pct.toFixed(2)} %
+            </Text>
+          );
+        },
+      },
+    ];
+  }, [periodoSel]);
 
   return (
     <>
@@ -92,38 +160,21 @@ export default function Index({ empresas = [], cuentas = [], anios = [] }) {
             <Form
               form={form}
               layout="vertical"
-              initialValues={{
-                empresa_id: empresas?.[0]?.value,
-                cuenta_id: undefined,
-                periodo: defaultRange,
-              }}
+              initialValues={{ empresa_id: undefined, periodo: undefined }}
             >
-              <Row gutter={16}>
-                <Col xs={24} md={8}>
-                  <Form.Item label="Empresa" name="empresa_id">
-                    <Select
-                      allowClear
-                      showSearch
-                      options={empresas}
-                      placeholder="(opcional)"
-                      onChange={onEmpresaChange}
-                      filterOption={(i,o)=> (o?.label??'').toLowerCase().includes(i.toLowerCase())}
-                    />
-                  </Form.Item>
-                </Col>
-
+              <Row gutter={30}>
                 <Col xs={24} md={8}>
                   <Form.Item
-                    label="Cuenta"
-                    name="cuenta_id"
-                    rules={[{ required: true, message: 'Seleccione la cuenta' }]}
+                    label="Empresa"
+                    name="empresa_id"
+                    rules={[{ required: true, message: 'Seleccione la empresa' }]}
                   >
                     <Select
                       showSearch
-                      options={cuentasOpts}
-                      placeholder="Ej. 1101 - Activo circulante"
-                      disabled={!cuentasOpts.length}
-                      filterOption={(i,o)=> (o?.label??'').toLowerCase().includes(i.toLowerCase())}
+                      placeholder="Seleccione una empresa"
+                      options={empresas}
+                      onChange={onEmpresaChange}
+                      filterOption={(i, o) => (o?.label ?? '').toLowerCase().includes(i.toLowerCase())}
                     />
                   </Form.Item>
                 </Col>
@@ -134,15 +185,31 @@ export default function Index({ empresas = [], cuentas = [], anios = [] }) {
                     name="periodo"
                     rules={[{ required: true, message: 'Seleccione el periodo' }]}
                   >
-                    <RangePicker picker="year" style={{ width: '100%' }} />
+                    <RangePicker
+                      picker="year"
+                      style={{ width: '100%' }}
+                      disabled={!years.length}
+                      disabledDate={disabledDate}
+                    />
                   </Form.Item>
                 </Col>
-              </Row>
 
-              <Space>
-                <Button type="primary" onClick={fetchDatos} loading={loading}>Calcular</Button>
-                <Button onClick={limpiar} icon={<ClearOutlined />}>Limpiar</Button>
-              </Space>
+                <Col xs={24} md={8}>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                    <div style={{ marginBottom: 8 }}>
+                      <Text>Acciones</Text>
+                    </div>
+                    <Space>
+                      <Button type="primary" onClick={fetchDatos} loading={loading} disabled={!years.length}>
+                        Calcular
+                      </Button>
+                      <BotonEditable color="#d89614" onClick={limpiar} icon={<ClearOutlined />}>
+                        Limpiar
+                      </BotonEditable>
+                    </Space>
+                  </div>
+                </Col>
+              </Row>
             </Form>
 
             <Table
@@ -151,8 +218,9 @@ export default function Index({ empresas = [], cuentas = [], anios = [] }) {
               columns={columns}
               dataSource={rows}
               loading={loading}
-              pagination={false}
-              locale={{ emptyText: 'Sin datos — seleccione filtros y presione Calcular' }}
+              pagination={{ pageSize: 6 }}
+              scroll={{ x: 'max-content' }}
+              locale={{ emptyText: 'Sin datos — seleccione empresa y periodo y presione Calcular' }}
             />
           </Space>
         </Card>
@@ -161,4 +229,4 @@ export default function Index({ empresas = [], cuentas = [], anios = [] }) {
   );
 }
 
-Index.layout = page => <AppLayout>{page}</AppLayout>;
+Index.layout = (page) => <AppLayout>{page}</AppLayout>;

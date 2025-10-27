@@ -42,6 +42,14 @@ Route::middleware('auth')->group(function () {
     Route::get('/analisis-ratios', [AnalisisRatiosController::class, 'index'])->name('analisis-ratios.index');
 
     //Rutas Análisis Horizontal
-    Route::get('/analisis-horizontal', [AnalisisHorizontalController::class, 'index'])->name('analisis-horizontal.index');
+    Route::get('/analisis-horizontal', [AnalisisHorizontalController::class, 'index'])
+        ->name('analisis.horizontal.index');
 
+    // Años disponibles para la empresa elegida
+    Route::get('/analisis-horizontal/anios', [AnalisisHorizontalController::class, 'aniosPorEmpresa'])
+        ->name('analisis.horizontal.anios');
+
+    // Datos (todas las cuentas de la empresa en el rango de años)
+    Route::get('/analisis-horizontal/datos', [AnalisisHorizontalController::class, 'datos'])
+        ->name('analisis.horizontal.datos');
 });
