@@ -102,7 +102,6 @@ export default function Index() {
             <Head title="Proyecciones de Ventas" /> {/* Título de la página */}
             <Card title="Proyección de ventas (12 meses)">
                 {/* Descripción debajo del título */}
-                <Card type="inner" style={{ border: 'none' }}>
                     <Meta
                         title="Entrada de datos"
                     />
@@ -149,9 +148,6 @@ export default function Index() {
 
                         </Col>
                     </Row>
-
-                </Card >
-
                 {resultado && (
                     <div ref={resultadosRef}>  {/* Aquí se coloca la referencia */}
                         <ResultadoProyeccion resultado={resultado} />
