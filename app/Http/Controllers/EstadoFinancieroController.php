@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\EstadoFinanciero;
 use App\Models\Empresa;
+use App\Models\DetalleEstado;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -98,6 +99,63 @@ class EstadoFinancieroController extends Controller
         return Redirect::route('empresas.estados-financieros.index', ['empresa' => $empresa->id])
             ->with('success', 'Estado financiero del año ' . $validated['año'] . ' guardado con éxito.');
     }
+
+    /**
+     * Muestra el formulario para editar un estado financiero existente.
+     */
+    public function edit(EstadoFinanciero $estadoFinanciero)
+    {
+        // Usamos la misma lógica del método 'show' para cargar los datos.
+        $estadoFinanciero->load('empresa', 'detalles.cuenta');
+
+        $detalles = $estadoFinanciero->detalles->map(function ($detalle) {
+            return [
+                'id' => $detalle->id,
+                'monto' => $detalle->monto,
+                'codigo_cuenta' => $detalle->cuenta->codigo_cuenta,
+                'nombre_cuenta' => $detalle->cuenta->nombre_cuenta,
+            ];
+        });
+
+        // Renderizamos una NUEVA página de React: 'Edit.jsx'
+        return Inertia::render('EstadosFinancieros/Edit', [
+            'estadoFinanciero' => $estadoFinanciero,
+            'detalles' => $detalles,
+        ]);
+    }
+
+    /**
+     * Actualiza un estado financiero en la base de datos.
+     */
+    public function update(Request $request, EstadoFinanciero $estadoFinanciero)
+    {
+        // 1. Validación de los datos que vienen del frontend
+        $validated = $request->validate([
+            'montos' => ['required', 'array'],
+            'montos.*.id' => ['required', 'exists:detalle_estados,id'], // ID del detalle a actualizar
+            'montos.*.monto' => ['required', 'numeric'],
+        ]);
+
+        // 2. Usamos una transacción para asegurar que todo se guarde correctamente
+        try {
+            DB::transaction(function () use ($validated) {
+                foreach ($validated['montos'] as $detalleData) {
+                    // Buscamos cada detalle por su ID y actualizamos solo el monto
+                    $detalle = DetalleEstado::find($detalleData['id']);
+                    if ($detalle) {
+                        $detalle->update(['monto' => $detalleData['monto']]);
+                    }
+                }
+            });
+        } catch (\Exception $e) {
+            return Redirect::back()->with('error', 'Ocurrió un error al actualizar los montos.');
+        }
+
+        // 3. Redirigimos de vuelta a la página 'show' con un mensaje de éxito.
+        return Redirect::route('estados-financieros.show', $estadoFinanciero->id)
+            ->with('success', 'Estado financiero actualizado con éxito.');
+    }
+
     /**
      * Elimina un estado financiero.
      */

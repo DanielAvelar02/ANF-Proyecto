@@ -1,14 +1,13 @@
 import React from 'react';
 import { Head, Link } from '@inertiajs/react';
-import { Breadcrumb, Table, Typography, Card, Result, Button } from 'antd';
-import { HomeOutlined } from '@ant-design/icons';
+import { Table, Typography, Card, Result, Button } from 'antd';
+import { HomeOutlined, EditOutlined } from '@ant-design/icons';
 import AppLayout from '@/Layouts/AppLayout';
 
 const { Title } = Typography;
 
 export default function Show({ estadoFinanciero, detalles }) {
 
-    // Verificación de seguridad por si el estado financiero no se encuentra
     if (!estadoFinanciero) {
         return (
             <>
@@ -23,8 +22,7 @@ export default function Show({ estadoFinanciero, detalles }) {
         );
     }
 
-    // Usamos los datos reales que vienen en las props
-    const periodo = new Date(estadoFinanciero.periodo).getFullYear() + 1; // Ajuste por zona horaria de JS
+    const periodo = new Date(estadoFinanciero.periodo).getFullYear() + 1;
     const empresa = estadoFinanciero.empresa;
 
     const columns = [
@@ -35,18 +33,25 @@ export default function Show({ estadoFinanciero, detalles }) {
             dataIndex: 'monto',
             key: 'monto',
             align: 'right',
-            // Formateo de moneda
             render: (monto) => `$${parseFloat(monto).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`
         },
     ];
 
     return (
         <>
-            {/* Título de la página dinámico */}
-            <title>Detalle del Periodo</title>
-            <Head title={`Detalle del Periodo ${periodo}`} /> {/* Título de la página */}
-
-            <Card title={`Detalle del Periodo ${periodo}`}>
+            <Head title={`Detalle del Periodo ${periodo}`} />
+            <Card 
+                title={`Detalle del Periodo ${periodo}`}
+                // CORREGIDO: 'extra' es una propiedad del Card, lo que lo alinea a la derecha.
+                extra={
+                    // CORREGIDO: Usamos la URL manual en lugar de 'route()'.
+                    <Link href={`/estados-financieros/${estadoFinanciero.id}/edit`}>
+                        <Button type="primary" icon={<EditOutlined />}>
+                            Editar Montos
+                        </Button>
+                    </Link>
+                }
+            >
                 <p>Mostrando los montos para cada cuenta en el periodo {periodo} de la empresa <strong>{empresa.nombre}</strong>.</p>
                 <Table columns={columns} dataSource={detalles} rowKey="id" pagination={false} />
             </Card>
