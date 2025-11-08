@@ -32,6 +32,11 @@ Route::middleware('auth')->group(function () {
         ->shallow()
         ->only(['store', 'update', 'destroy']);
     Route::get('/empresas/{empresa}/estados-financieros', [EstadoFinancieroController::class, 'index'])->name('empresas.estados-financieros.index');
+    // 1. Para descargar la plantilla de Excel
+    Route::get('/empresas/{empresa}/plantilla-excel', [EstadoFinancieroController::class, 'descargarPlantilla'])->name('empresas.plantilla-excel.download');
+    // 2. Para recibir el archivo Excel subido
+    Route::post('/empresas/{empresa}/estados-financieros/importar', [EstadoFinancieroController::class, 'importarExcel'])->name('empresas.estados-financieros.importar');
+
     Route::post('/empresas/{empresa}/estados-financieros', [EstadoFinancieroController::class, 'store'])->name('empresas.estados-financieros.store');
     Route::resource('/estados-financieros', EstadoFinancieroController::class)->except(['index'])->parameters(['estados-financieros' => 'estadoFinanciero']); // Excluimos index para no chocar con la ruta de arriba
 

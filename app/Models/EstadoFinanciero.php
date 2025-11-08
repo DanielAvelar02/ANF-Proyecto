@@ -16,6 +16,7 @@ class EstadoFinanciero extends Model
     protected $fillable = [
         'periodo',
         'empresa_id',
+        'origen'
     ];
 
     // Para que Laravel maneje el campo 'periodo' como un objeto de fecha
