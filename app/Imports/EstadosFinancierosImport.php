@@ -19,22 +19,14 @@ class EstadosFinancierosImport implements ToCollection, WithStartRow
     public function __construct(Empresa $empresa, int $año)
     {
         $this->empresa = $empresa;
-        $this->año = $año; // <--- ¡¡AÑADE ESTA LÍNEA!!
+        $this->año = $año;
     }
 
-    /**
-     * Indica a Maatwebsite/Excel que empiece a leer desde la fila 2,
-     * saltando así los encabezados 'id_cuenta', 'Codigo', 'Monto', etc.
-     */
     public function startRow(): int
     {
         return 2;
     }
 
-    /**
-     * Procesa la colección de filas del Excel.
-     * @param Collection $rows
-     */
     public function collection(Collection $rows)
     {
         // 1. Validar que el archivo no esté vacío
@@ -42,30 +34,39 @@ class EstadosFinancierosImport implements ToCollection, WithStartRow
             throw new \Exception("El archivo está vacío o no tiene datos.");
         }
 
-        // 2. Usamos una transacción para asegurar que todo se guarde correctamente
-        DB::transaction(function () use ($rows) {
+        // ✅ PRE-CARGAMOS las cuentas válidas de esta empresa
+        $cuentasValidas = $this->empresa->catalogoCuentas()->pluck('id')->toArray();
 
-            // 3. Creamos el registro principal (EstadoFinanciero)
+        DB::transaction(function () use ($rows, $cuentasValidas) {
+
+            // 2. Crear el estado financiero
             $this->nuevoEstadoFinanciero = $this->empresa->estadosFinancieros()->create([
-                // Ahora $this->año SÍ tiene el valor correcto
                 'periodo' => Carbon::createFromDate($this->año, 1, 1)->startOfYear(),
                 'origen' => 'Importado'
             ]);
 
-            // 4. Recorremos cada fila del Excel
+            // 3. Procesar filas
             foreach ($rows as $row) {
                 
-                // Leemos las columnas según el exportador:
-                $cuentaId = $row[0]; // Columna A: 'id_cuenta (No editar...)'
-                $monto = $row[3];    // Columna D: 'Monto (Ingresar aquí)'
+                $cuentaId = $row[0]; // ID cuenta (columna A)
+                $monto = $row[3];    // Monto (columna D)
 
-                // Verificación simple
-                if (!is_numeric($cuentaId) || !is_numeric($monto)) {
-                    // Si una fila es inválida, revertimos toda la transacción
-                    throw new \Exception("Fila inválida encontrada. Asegúrese de que todos los montos sean números.");
+                // Validar ID numérico
+                if (!is_numeric($cuentaId)) {
+                    throw new \Exception("Fila inválida: El ID de la cuenta no es numérico. Fila: " . $row->toJson());
                 }
 
-                // 5. Creamos el registro de detalle para esta fila
+                // ✅ Validar que la cuenta pertenezca a la empresa
+                if (!in_array($cuentaId, $cuentasValidas)) {
+                    throw new \Exception("La cuenta con ID {$cuentaId} no pertenece a la empresa {$this->empresa->nombre}.");
+                }
+
+                // Validar monto; si no es número → 0
+                if (!is_numeric($monto)) {
+                    $monto = 0;
+                }
+
+                // Crear detalle
                 $this->nuevoEstadoFinanciero->detalles()->create([
                     'catalogo_cuenta_id' => $cuentaId,
                     'monto' => $monto,
@@ -74,10 +75,6 @@ class EstadosFinancierosImport implements ToCollection, WithStartRow
         });
     }
 
-    /**
-     * Función auxiliar para obtener el Estado Financiero creado
-     * después de que la importación sea exitosa.
-     */
     public function getEstadoFinancieroCreado(): ?EstadoFinanciero
     {
         return $this->nuevoEstadoFinanciero;

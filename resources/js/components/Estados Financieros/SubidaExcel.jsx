@@ -1,14 +1,17 @@
-// resources/js/Components/Estados Financieros/SubidaExcel.jsx
-
 import React, { useState } from 'react';
-// Importamos los componentes de Ant Design que ya usabas
-import { Upload, Button, message, Space, Typography } from 'antd';
+// 1. IMPORTA 'App as AntApp' y QUITA 'message'
+import { Upload, Button, App as AntApp, Space, Typography } from 'antd';
 import { UploadOutlined, FileExcelTwoTone } from '@ant-design/icons';
 
 const { Dragger } = Upload;
+const { useApp } = AntApp; // 2. OBTÉN EL HOOK 'useApp'
 
 // MODIFICADO: El componente ahora recibe 'empresaId' en lugar de 'uploadRoute'
 export default function SubidaExcel({ onLeido, empresaId, año }) {
+    
+    // 3. USA EL HOOK PARA OBTENER EL 'message' CONTEXTUAL
+    const { message } = useApp();
+
     const [file, setFile] = useState(null);
     const [loading, setLoading] = useState(false);
 
@@ -28,13 +31,15 @@ export default function SubidaExcel({ onLeido, empresaId, año }) {
     // Esta es la lógica adaptada de tu componente 'proyecciones'
     const handleUpload = async () => {
         if (!file) {
+            // Esta llamada ahora usará el 'message' del hook
             message.warning('Por favor, selecciona un archivo primero.');
             return;
         }
 
         if (!año || año < 1900 || año > 2100) {
-        message.error('Por favor, ingresa un año válido en el formulario.');
-        return;
+            // Esta llamada ahora usará el 'message' del hook
+            message.error('Por favor, ingresa un año válido en el formulario.');
+            return;
         }
 
         setLoading(true);
@@ -64,6 +69,7 @@ export default function SubidaExcel({ onLeido, empresaId, año }) {
             
             // Verificamos si la data es válida (similar a tu lógica de proyecciones)
             if (!data || data.status !== 'success') {
+                 // Esta llamada ahora usará el 'message' del hook
                  message.error(data.message || 'Hubo un problema al procesar el archivo.');
                  return;
             }
@@ -73,6 +79,7 @@ export default function SubidaExcel({ onLeido, empresaId, año }) {
 
         } catch (error) {
             console.error('Error al subir el archivo:', error);
+            // Esta llamada ahora usará el 'message' del hook
             message.error(error.message || 'Hubo un problema al procesar el archivo. Inténtalo de nuevo.');
         } finally {
             setLoading(false);
