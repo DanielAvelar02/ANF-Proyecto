@@ -1,9 +1,8 @@
 // resources/js/Pages/AnalisisRatios/Index.jsx
 
 // --- Importaciones ---
-import React, { useState, useMemo } from 'react';
-// BACKEND: Importamos 'Head' para el título de la página.
-import { Head } from '@inertiajs/react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import { Head, router } from '@inertiajs/react';
 import {
     Breadcrumb,
     Typography,
@@ -15,195 +14,279 @@ import {
     Card,
     Statistic,
     Alert,
-    Row, // Para la grilla de gráficos
-    Col, // Para la grilla de gráficos
+    Row,
+    Col,
+    Spin, 
 } from 'antd';
-// MODIFICADO: Corregido el error de tipeo de @ant-D/icons a @ant-design/icons
 import { LineChartOutlined, ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons';
+// 🛑🛑 CAMBIO 1: Importamos el componente de gráfico real 🛑🛑
+import { Line } from '@ant-design/charts'; 
 import AppLayout from '@/Layouts/AppLayout';
+import axios from 'axios'; 
 
 const { Title, Text } = Typography;
 const { Option } = Select;
 
-// --- Datos de Prueba para la Página de Análisis ---
-// BACKEND: Todas estas listas de 'mock' datos vendrán como props desde el controlador de Laravel.
-const mockEmpresas = [
-  { id: 1, nombre: 'Empresa Minera S.A.' },
-  { id: 2, nombre: 'Venta de Equipos Corp.' },
-  { id: 3, nombre: 'Consultores Tech' },
-];
-
-const mockRatioDefinitions = [
-    { key: '1', nombre: 'Razón Circulante', formula: 'Activos Corrientes / Pasivos Corrientes' },
-    { key: '2', nombre: 'Prueba Ácida', formula: 'Activo Cte. - Inventario / Pasivo Cte.' },
-    { key: '3', nombre: 'ROE', formula: 'Utilidad Neta / Patrimonio' },
-];
-
-// NUEVOS DATOS: Simulan los ratios de una empresa en dos periodos distintos Y el ratio estático del sector.
-const mockRatiosParaHorizontal = {
-    1: { // Datos para Empresa Minera S.A.
-        '2024': [
-            { key: '1', nombre: 'Razón Circulante', valor: 2.5, ratioSector: 2.2 },
-            { key: '2', nombre: 'Prueba Ácida', valor: 1.2, ratioSector: 1.1 },
-            { key: '3', nombre: 'ROE', valor: 0.15, ratioSector: 0.14 },
-        ],
-        '2023': [
-            { key: '1', nombre: 'Razón Circulante', valor: 2.1, ratioSector: 2.2 },
-            { key: '2', nombre: 'Prueba Ácida', valor: 1.0, ratioSector: 1.1 },
-            { key: '3', nombre: 'ROE', valor: 0.18, ratioSector: 0.14 },
-        ]
-    }
-};
-
-// NUEVOS DATOS: Simulan el ratio de una empresa vs. el promedio de su sector.
-const mockRatiosParaSectorial = {
-    1: { // Datos para Empresa Minera S.A. en 2024
-        '2024': [
-            { key: '1', nombre: 'Razón Circulante', valorEmpresa: 2.5, promedioSector: 2.2 },
-            { key: '2', nombre: 'Prueba Ácida', valorEmpresa: 1.2, promedioSector: 1.1 },
-            { key: '3', nombre: 'ROE', valorEmpresa: 0.15, promedioSector: 0.14 },
-        ]
-    }
-};
-
-// MODIFICADO: Añadimos los datos de prueba que faltaban para las keys '1' y '3'.
-const mockAllCompanyRatioValues = {
-    '1': [ // NUEVOS DATOS para Razón Circulante
-        { empresaId: 1, nombre: 'Empresa Minera S.A.', valor: 2.5 },
-        { empresaId: 2, nombre: 'Venta de Equipos Corp.', valor: 3.1 },
-        { empresaId: 3, nombre: 'Consultores Tech', valor: 2.8 },
-    ],
-    '2': [ { empresaId: 1, nombre: 'Empresa Minera S.A.', valor: 1.2 }, { empresaId: 2, nombre: 'Venta de Equipos Corp.', valor: 1.8 }, { empresaId: 3, nombre: 'Consultores Tech', valor: 1.4 },],
-    '3': [ // NUEVOS DATOS para ROE
-        { empresaId: 1, nombre: 'Empresa Minera S.A.', valor: 0.15 },
-        { empresaId: 2, nombre: 'Venta de Equipos Corp.', valor: 0.22 },
-        { empresaId: 3, nombre: 'Consultores Tech', valor: 0.19 },
-    ]
-};
-
-// BACKEND: Esta será la estructura de datos para la pestaña de gráficos.
-const mockGraficosEvolucion = {
-    'Razón Circulante': [ { anio: 2023, valor: 1.8 }, { anio: 2024, valor: 2.1 }, { anio: 2025, valor: 2.5 } ],
-    'ROE (%)': [ { anio: 2023, valor: 12 }, { anio: 2024, valor: 14 }, { anio: 2025, valor: 15 } ],
-    'ROA (%)': [ { anio: 2023, valor: 6 }, { anio: 2024, valor: 7.5 }, { anio: 2025, valor: 8 } ],
-    'Endeudamiento': [ { anio: 2023, valor: 0.55 }, { anio: 2024, valor: 0.5 }, { anio: 2025, valor: 0.45 } ],
-    'Rotación de Activos': [ { anio: 2023, valor: 1.1 }, { anio: 2024, valor: 1.3 }, { anio: 2025, valor: 1.4 } ],
+// Funciones auxiliares (renderVariacion sin cambios)
+const renderVariacion = (val) => {
+    if (val === null) return <Tag color="default">N/A</Tag>;
+    const color = val >= 0 ? 'success' : 'error';
+    const icon = val >= 0 ? <ArrowUpOutlined /> : <ArrowDownOutlined />;
+    return <Tag color={color}>{val.toFixed(2)}% {icon}</Tag>;
 };
 
 
-// --- Componente Principal de la Página ---
-// BACKEND: El componente recibirá todos los datos de prueba como props desde el controlador.
-export default function AnalisisRatiosIndex() {
+// 🛑🛑 CAMBIO 2: Componente 'GraficoCard' reemplazado 🛑🛑
+/**
+ * Este componente ahora SÍ renderiza un gráfico de líneas.
+ */
+const GraficoCard = ({ title, data = [] }) => {
     
-    // --- Pestaña 1: Análisis de Empresa (vs. Periodo y Sector) ---
-    const AnalisisEmpresaTab = () => {
-        const [selectedEmpresaId, setSelectedEmpresaId] = useState(null);
-        const [periodoA, setPeriodoA] = useState('2024');
-        const [periodoB, setPeriodoB] = useState('2023');
+    // Convertimos 'anio' a string para que el eje X lo trate como categoría
+    const chartData = data.map(item => ({
+        ...item,
+        anio: String(item.anio), 
+    }));
 
-        // Combina los datos de los dos periodos seleccionados para la tabla.
-        const tablaDataSource = useMemo(() => {
-            const datosA = mockRatiosParaHorizontal[selectedEmpresaId]?.[periodoA] || [];
-            const datosB = mockRatiosParaHorizontal[selectedEmpresaId]?.[periodoB] || [];
+    // Configuración para el gráfico de Ant Design
+    const config = {
+        data: chartData,
+        xField: 'anio',
+        yField: 'valor',
+        point: {
+            shape: 'diamond',
+            size: 4,
+        },
+        tooltip: {
+            title: (value) => `Año ${value}`, // Título del tooltip
+            formatter: (datum) => ({ name: 'Valor', value: datum.valor.toFixed(3) }), // Contenido
+        },
+        height: 250, // Altura fija para el gráfico
+        padding: 'auto',
+    };
+
+    return (
+        <Card title={title} variant="outlined" className="h-full">
+            {/* Validamos si hay datos para graficar */}
+            {chartData.length > 0 ? (
+                <Line {...config} />
+            ) : (
+                // Mantenemos el placeholder si no hay datos
+                <div style={{ textAlign: 'center', padding: '20px', background: '#f0f2f5', borderRadius: '8px', height: '250px' }}>
+                    <LineChartOutlined style={{ fontSize: '48px', color: '#999' }} />
+                    <Title level={5} style={{ marginTop: '10px' }}>Evolución a 3 Años</Title>
+                    <Text type="secondary">No hay datos suficientes</Text>
+                </div>
+            )}
+        </Card>
+    );
+};
+
+
+// --- Componente Principal de la Página (Sin cambios) ---
+export default function AnalisisRatiosIndex({ 
+    empresas = [], 
+    periodosDisponibles = [], 
+    ratioDefinitions = [], 
+    initialRatiosHorizontal = {},
+    initialRatiosSectorial = {},
+    initialGraficos = {},
+}) {
+    
+    if (empresas.length === 0 || periodosDisponibles.length === 0 || ratioDefinitions.length === 0) {
+        return (
+            <AppLayout>
+                <Alert 
+                    message="Error de Configuración/Datos" 
+                    description="No se pudo cargar la lista de empresas, periodos o definiciones de ratios. Verifique que haya empresas registradas y que el controlador esté enviando los datos iniciales correctamente." 
+                    type="error" 
+                    showIcon 
+                />
+            </AppLayout>
+        );
+    }
+
+    const [selectedEmpresaId, setSelectedEmpresaId] = useState(empresas[0]?.id || null);
+    const [periodoA, setPeriodoA] = useState(periodosDisponibles[0] || new Date().getFullYear());
+    const [isLoading, setIsLoading] = useState(false);
+    
+    const [ratiosHorizontal, setRatiosHorizontal] = useState(initialRatiosHorizontal);
+    const [ratiosSectorial, setRatiosSectorial] = useState(initialRatiosSectorial);
+    const [graficosEvolucion, setGraficosEvolucion] = useState(initialGraficos);
+
+    // Lógica para cargar datos del backend
+    const fetchData = useCallback(async (empresaId, periodo) => {
+        if (!empresaId || !periodo) return;
+        
+        setIsLoading(true);
+        try {
             
-            return mockRatioDefinitions.map(def => {
-                const valorA = datosA.find(r => r.key === def.key)?.valor || 0;
-                const valorB = datosB.find(r => r.key === def.key)?.valor || 0;
-                const ratioSector = datosA.find(r => r.key === def.key)?.ratioSector || 0; // Obtenemos el ratio estático.
-                const variacionAbs = valorA - valorB;
-                const variacionPct = valorB !== 0 ? (variacionAbs / valorB) * 100 : 0;
-                
-                return { ...def, valorA, valorB, variacionAbs, variacionPct, ratioSector };
+            // 🚨 SOLUCIÓN DEFINITIVA PARA ERROR DE ZIGGY: 
+            // Usamos la URL hardcodeada en lugar de la función route().
+            const response = await axios.get('/api/analisis-ratios/data', {
+                params: { 
+                    empresa_id: empresaId, 
+                    periodo: periodo 
+                }
             });
-        }, [selectedEmpresaId, periodoA, periodoB]);
+            
+            const data = response.data;
+            
+            setRatiosHorizontal(data.ratiosHorizontal);
+            setRatiosSectorial(data.ratiosSectorial);
+            setGraficosEvolucion(data.graficosEvolucion);
+
+        } catch (error) {
+            console.error("Error al cargar datos de ratios:", error);
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
+    // Efecto para cargar datos al cambiar filtros
+    useEffect(() => {
+        if (!selectedEmpresaId) return; 
+        fetchData(selectedEmpresaId, periodoA);
+    }, [selectedEmpresaId, periodoA, fetchData]);
+
+
+    // --- Pestaña 1: Análisis de Empresa (Horizontal y vs. Sector) ---
+    const AnalisisEmpresaTab = () => {
+        const periodoB = periodoA - 1; 
+        
+        const dataForTable = useMemo(() => {
+            const currentRatios = ratiosHorizontal?.[selectedEmpresaId]?.[periodoA];
+            return currentRatios || []; 
+        }, [ratiosHorizontal, selectedEmpresaId, periodoA]);
 
         const columns = [
-            { title: 'Nombre del Ratio', dataIndex: 'nombre', key: 'nombre', width: 250 },
-            { title: `Valor (${periodoA})`, dataIndex: 'valorA', render: (val) => <Text strong>{val.toFixed(2)}</Text> },
-            { title: `Valor (${periodoB})`, dataIndex: 'valorB', render: (val) => val.toFixed(2) },
-            { title: 'Variación %', dataIndex: 'variacionPct', render: (val) => <Tag color={val >= 0 ? 'green' : 'red'}>{val.toFixed(2)}%</Tag> },
-            { title: 'Ratio Sector (Estático)', dataIndex: 'ratioSector', render: (val) => val.toFixed(2) },
-            { title: 'Evaluación (vs. Sector)', key: 'evaluacion', render: (_, record) => {
-                if (!record.valorA) return '-';
-                const favorable = record.valorA >= record.ratioSector;
-                return <Tag color={favorable ? 'success' : 'error'}>{favorable ? 'Cumple' : 'No Cumple'}</Tag>
-            }}
+            { title: 'Ratio', dataIndex: 'nombre', key: 'nombre', width: 250 },
+            { title: 'Fórmula', dataIndex: 'formula', key: 'formula', width: 200 },
+            { title: `Valor (${periodoA})`, dataIndex: 'valor_A', render: (val) => <Text strong>{val?.toFixed(3) || 0.00}</Text> },
+            { title: `Valor (${periodoB})`, dataIndex: 'valor_B', render: (val) => val?.toFixed(3) || 0.00 },
+            { title: 'Variación % (YoY)', dataIndex: 'variacion', render: renderVariacion },
+            { title: 'Ratio Sector (Benchmark)', dataIndex: 'ratioSector', render: (val) => val?.toFixed(3) || 'N/D'},
         ];
         
         return (
-            <div>
+            <Spin spinning={isLoading} tip="Cargando análisis...">
                 <Space wrap style={{ marginBottom: 16 }}>
                     <Text>Empresa:</Text>
-                    <Select placeholder="Empresa" style={{ width: 250 }} onChange={value => setSelectedEmpresaId(value)} allowClear>{mockEmpresas.map(e => <Option key={e.id} value={e.id}>{e.nombre}</Option>)}</Select>
-                    <Text>Comparar Periodo:</Text>
-                    <Select defaultValue={periodoA} style={{ width: 120 }} onChange={setPeriodoA}><Option value="2024">2024</Option><Option value="2023">2023</Option></Select>
-                    <Text>Contra:</Text>
-                    <Select defaultValue={periodoB} style={{ width: 120 }} onChange={setPeriodoB}><Option value="2024">2024</Option><Option value="2023">2023</Option></Select>
+                    <Select value={selectedEmpresaId} style={{ width: 250 }} onChange={setSelectedEmpresaId}>
+                        {empresas.map(e => <Option key={e.id} value={e.id}>{e.nombre}</Option>)}
+                    </Select>
+                    <Text>Periodo de Análisis:</Text>
+                    <Select value={periodoA} style={{ width: 120 }} onChange={setPeriodoA}>
+                        {periodosDisponibles.map(p => <Option key={p} value={p}>{p}</Option>)}
+                    </Select>
                 </Space>
-                <Table columns={columns} dataSource={tablaDataSource} rowKey="key" pagination={false} size="small" />
-            </div>
+                <Table 
+                    columns={columns} 
+                    dataSource={dataForTable} 
+                    rowKey="key" 
+                    pagination={false} 
+                    size="small" 
+                    locale={{ emptyText: 'No hay datos disponibles. Verifique los estados financieros y el catálogo de cuentas.' }}
+                />
+            </Spin>
         );
     };
 
     // --- Pestaña 2: Análisis Comparativo (vs. Promedio de Empresas) ---
     const AnalisisComparativoTab = () => {
-        const [selectedRatioId, setSelectedRatioId] = useState(null);
-        // BACKEND: Esta lógica 'useMemo' se reemplazará por una petición al backend
-        // que devuelva los datos ya calculados (promedio y lista de empresas).
-        const { promedio, empresas } = useMemo(() => { if (!selectedRatioId) return { promedio: 0, empresas: [] }; const valores = mockAllCompanyRatioValues[selectedRatioId] || []; if (valores.length === 0) return { promedio: 0, empresas: [] }; const sum = valores.reduce((acc, item) => acc + item.valor, 0); return { promedio: sum / valores.length, empresas: valores }; }, [selectedRatioId]);
-        const columns = [ { title: 'Empresa', dataIndex: 'nombre', key: 'nombre' }, { title: 'Valor Obtenido', dataIndex: 'valor', key: 'valor' }, { title: 'Resultado vs Promedio', key: 'resultado', render: (_, record) => { const cumple = record.valor >= promedio; return <Tag color={cumple ? 'success' : 'error'}>{cumple ? 'Cumple' : 'No Cumple'}</Tag>}}];
+        const [selectedRatioId, setSelectedRatioId] = useState(ratioDefinitions[0]?.key || null);
         
+        const { promedio, empresasData } = useMemo(() => { 
+            let datosRatio = ratiosSectorial?.[selectedRatioId];
+            if (!Array.isArray(datosRatio)) {
+                datosRatio = [];
+            }
+            if (datosRatio.length === 0) return { promedio: 0, empresasData: [] };
+            
+            const sum = datosRatio.reduce((acc, item) => acc + item.valor, 0);
+            return { 
+                promedio: sum / datosRatio.length, 
+                empresasData: datosRatio 
+            }; 
+        }, [selectedRatioId, ratiosSectorial]);
+        
+        const columns = [ 
+            { title: 'Empresa', dataIndex: 'nombre', key: 'nombre' }, 
+            { title: 'Valor Obtenido', dataIndex: 'valor', key: 'valor', render: (val) => val.toFixed(3) }, 
+            { title: 'Resultado vs Promedio', key: 'resultado', render: (_, record) => { 
+                const cumple = record.valor >= promedio; 
+                return <Tag color={cumple ? 'success' : 'error'}>{cumple ? 'Cumple' : 'No Cumple'}</Tag>
+            }}
+        ];
+        
+        const showNoDataAlert = !selectedRatioId || empresasData.length === 0;
+
         return (
-            <div>
-                <Space style={{ marginBottom: 16 }}><Text>Seleccione un ratio para analizar:</Text><Select placeholder="Ratio" style={{ width: 250 }} onChange={value => setSelectedRatioId(value)} allowClear>{mockRatioDefinitions.map(r => <Option key={r.key} value={r.key}>{r.nombre}</Option>)}</Select></Space>
-                {selectedRatioId && (<Card><Statistic title="Promedio del Sistema" value={promedio.toFixed(3)} /><Table columns={columns} dataSource={empresas} rowKey="empresaId" pagination={false} style={{ marginTop: 16 }}/></Card>)}
-            </div>
+            <Spin spinning={isLoading} tip="Cargando comparativas...">
+                <Space style={{ marginBottom: 16 }}>
+                    <Text>Seleccione un ratio para analizar:</Text>
+                    <Select placeholder="Ratio" style={{ width: 250 }} 
+                            value={selectedRatioId} onChange={setSelectedRatioId}>
+                        {ratioDefinitions.map(r => <Option key={r.key} value={r.key}>{r.nombre}</Option>)}
+                    </Select>
+                </Space>
+                
+                {showNoDataAlert ? (
+                    <Alert 
+                        message="Datos no disponibles" 
+                        description="No se encontraron datos comparativos (benchmark) o empresas para el ratio seleccionado en el sistema. Verifique su controlador." 
+                        type="warning" 
+                        showIcon 
+                        style={{ marginTop: 16 }}
+                    />
+                ) : (
+                    <Card variant="outlined"> 
+                        <Statistic title="Promedio del Sistema" value={promedio.toFixed(3)} />
+                        <Table 
+                            columns={columns} 
+                            dataSource={empresasData} 
+                            rowKey="empresaId" 
+                            pagination={false} 
+                            style={{ marginTop: 16 }}
+                            size="small"
+                        />
+                    </Card>
+                )}
+            </Spin>
         );
     };
 
     // --- Pestaña 3: Componente para los Gráficos ---
     const GraficosTab = () => {
-        const [selectedEmpresaId, setSelectedEmpresaId] = useState(null);
-
-        // BACKEND: INSTRUCCIONES PARA EL DESARROLLADOR DE BACKEND
-        // ... (tus instrucciones de backend sin cambios)
-
-        const GraficoCard = ({ title, data }) => (
-            <Card title={title}>
-                <div style={{ textAlign: 'center', padding: '20px', background: '#f0f2f5', borderRadius: '8px' }}>
-                    <LineChartOutlined style={{ fontSize: '48px', color: '#999' }} />
-                    <Title level={5} style={{ marginTop: '10px' }}>Evolución (Simulada)</Title>
-                    <Text type="secondary">{data.map(d => `${d.anio}: ${d.valor}`).join(' | ')}</Text>
-                </div>
-            </Card>
-        );
-
+        const graficosData = graficosEvolucion;
+        
         return (
-            <div>
-                <Space style={{ marginBottom: 16 }}>
-                    <Text>Seleccione una empresa para ver sus gráficos:</Text>
-                    <Select placeholder="Seleccione una empresa" style={{ width: 250 }} onChange={value => setSelectedEmpresaId(value)} allowClear>
-                        {mockEmpresas.map(e => <Option key={e.id} value={e.id}>{e.nombre}</Option>)}
-                    </Select>
-                </Space>
-                {!selectedEmpresaId ? (
-                    <Alert message="Por favor, seleccione una empresa para visualizar los gráficos." type="info" showIcon />
-                ) : (
-                    <Row gutter={[16, 16]}>
-                        {Object.entries(mockGraficosEvolucion).map(([title, data]) => (
-                            <Col xs={24} md={12} key={title}>
-                                <GraficoCard title={title} data={data} />
-                            </Col>
-                        ))}
-                    </Row>
-                )}
-            </div>
+            <Spin spinning={isLoading} tip="Generando gráficos de evolución...">
+                <Alert 
+                    message="Gráficos de Evolución" 
+                    description="Se muestra la evolución de 5 ratios clave en los últimos 3 años." 
+                    type="info" 
+                    showIcon 
+                    style={{ marginBottom: 16 }}
+                />
+                
+                <Row gutter={[16, 16]}>
+                    {Object.entries(graficosData).map(([title, data]) => (
+                        <Col xs={24} md={12} key={title}>
+                            <GraficoCard title={title} data={data} />
+                        </Col>
+                    ))}
+                    {Object.keys(graficosData).length === 0 && selectedEmpresaId && (
+                         <Alert message="No hay datos de evolución disponibles para la empresa seleccionada." type="warning" showIcon style={{ width: '100%', margin: '16px' }} />
+                    )}
+                </Row>
+            </Spin>
         );
     };
     
-    // --- Definición de las Pestañas (con nuevas etiquetas) ---
+    // --- Definición de las Pestañas ---
     const tabItems = [ 
-        { key: '1', label: 'Análisis de Empresa (vs. Periodo y Sector)', children: <AnalisisEmpresaTab /> }, 
+        { key: '1', label: 'Análisis de Empresa (Horizontal y Sector)', children: <AnalisisEmpresaTab /> }, 
         { key: '2', label: 'Análisis Comparativo (vs. Promedio)', children: <AnalisisComparativoTab /> }, 
         { key: '3', label: 'Gráficos de Evolución', children: <GraficosTab /> }
     ];
@@ -213,15 +296,13 @@ export default function AnalisisRatiosIndex() {
         <>
             <Head title="Análisis de Ratios" />
             
-            {/* Esto es para la "miga de pan" y el encabezado. */}
             <Breadcrumb items={[{ title: 'Inicio' }, { title: 'Análisis de Ratios' }]} style={{ marginBottom: 16 }} />
             <Title level={2} style={{ margin: 0, marginBottom: 16 }}>Análisis de Ratios Financieros</Title>
             
-            {/* Esto renderiza el contenedor de las pestañas. */}
             <Tabs defaultActiveKey="1" items={tabItems} />
         </>
     );
 };
 
-// Esto es para aplicar el layout principal.
-AnalisisRatiosIndex.layout = page => <AppLayout>{page}</AppLayout>;
+// Aplicar el layout principal
+AnalisisRatiosIndex.layout = page => <AppLayout children={page} />;
