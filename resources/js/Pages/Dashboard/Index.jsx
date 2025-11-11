@@ -1,177 +1,142 @@
-import React, { useState } from 'react';
-import { Head, Link, router } from '@inertiajs/react'; 
-import { Row, Col, Card, Typography, List, Button, Select, Space } from 'antd';
-// Importamos los íconos necesarios
-import { 
-    LineChartOutlined, 
-    CalculatorOutlined,       
-    AreaChartOutlined,       
-    FundProjectionScreenOutlined, 
-    FileExcelOutlined, 
-    PercentageOutlined, 
-    ExperimentOutlined, 
-    ArrowRightOutlined,
-    BankOutlined,
-    AppstoreOutlined 
-} from '@ant-design/icons';
-import AppLayout from '@/Layouts/AppLayout';
+import React from 'react'
+import { Head, Link } from '@inertiajs/react'
+import AppLayout from '@/Layouts/AppLayout'
+import { Row, Col, Typography, Card, Statistic, List, Tag, Empty } from 'antd'
+import { Line } from '@ant-design/plots'
+import {
+  ShopOutlined,
+  CalculatorOutlined,
+  CalendarOutlined,
+  AppstoreOutlined,
+  PieChartOutlined,
+  SettingOutlined,
+  TagsOutlined,
+  FileExcelOutlined,
+  ArrowRightOutlined
+} from '@ant-design/icons'
+import DashboardCard from '@/Components/Dashboard/DashboardCard'
 
-const { Title, Paragraph, Text } = Typography;
-const { Option } = Select;
+const { Title, Paragraph, Text } = Typography
+const cardShadow = { boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }
 
-// --- Componente Principal del Dashboard ---
-export default function DashboardIndex() {
-  
-  // --- Listas de Funcionalidades (con viñetas) ---
-  const analisisFuncionalidades = [
-    '• Configuración de catálogos contables por empresa',
-    '• Comparación con promedios del sector',
-    '• Análisis de múltiples periodos',
-    '• Ranking y visualización gráfica (Futuro)',
-  ];
+const StatsZone = ({ stats }) => (
+  <Row gutter={[24, 24]} style={{ marginBottom: '2rem' }}>
+    <Col xs={24} sm={12} lg={6}>
+      <Card style={cardShadow}>
+        <Statistic title="Total de Empresas" value={stats.totalEmpresas} prefix={<ShopOutlined />} />
+      </Card>
+    </Col>
+    <Col xs={24} sm={12} lg={6}>
+      <Card style={cardShadow}>
+        <Statistic title="Análisis Guardados" value={stats.totalAnalisis} prefix={<CalculatorOutlined />} />
+      </Card>
+    </Col>
+    <Col xs={24} sm={12} lg={6}>
+      <Card style={cardShadow}>
+        <Statistic title="Sectores Definidos" value={stats.totalSectores} prefix={<AppstoreOutlined />} />
+      </Card>
+    </Col>
+    <Col xs={24} sm={12} lg={6}>
+      <Card style={cardShadow}>
+        <Statistic title="Último Periodo" value={stats.ultimoPeriodo} prefix={<CalendarOutlined />} />
+      </Card>
+    </Col>
+  </Row>
+)
 
-  const proyeccionMetodos = [
-    '• Método de mínimos cuadrados',
-    '• Incremento porcentual',
-    '• Incremento absoluto',
-    '• Generación automática mes faltante',
-  ];
+const ActivityZone = ({ actividad }) => (
+  <Card title="Actividad Reciente" style={cardShadow}>
+    {actividad && actividad.length > 0 ? (
+      <List
+        dataSource={actividad}
+        renderItem={(item) => (
+          <List.Item>
+            <List.Item.Meta
+              avatar={<FileExcelOutlined style={{ fontSize: 24, color: '#1890ff' }} />}
+              title={<>{item.descripcion} <Text strong>{item.empresa_nombre}</Text></>}
+              description={item.fecha}
+            />
+          </List.Item>
+        )}
+      />
+    ) : (
+      <Empty description="No hay actividad reciente." />
+    )}
+  </Card>
+)
 
-  const empresasFuncionalidades = [
-    '• Crear y editar empresas.',
-    '• Asociar empresas a un tipo/sector.',
-    '• Gestionar tipos/sectores.',
-    '• Definir benchmarks por sector (Futuro).',
-  ];
-
-  // Colores para los bordes e íconos
-  const azul = '#1890ff';
-  const verde = '#52c41a';
-  const naranja = '#fa8c16';
-
-  const darkButtonStyle = {
-      backgroundColor: '#262626', // Color de fondo oscuro
-      color: '#ffffff', // Color de texto blanco
-      borderColor: '#262626' // Borde del mismo color
-  };
-
-  const [selectedEmpresaRoute, setSelectedEmpresaRoute] = useState('/empresas');
+export default function DashboardIndex({ auth, stats, ultimoAnalisis, actividadReciente }) {
+  const proyeccionData = [
+    { mes: '1', ventas: 0 }, { mes: '2', ventas: 110 }, { mes: '3', ventas: 105 },
+    { mes: '4', ventas: 200 }, { mes: '5', ventas: 1000 }, { mes: '6', ventas: 5000 },
+  ]
 
   return (
     <>
       <Head title="Dashboard" />
-
-      {/* --- Encabezado --- */}
-      <Title level={2}>Bienvenido al Sistema</Title>
-      <Paragraph type="secondary">
-        Selecciona el módulo con el que deseas trabajar. Este sistema está especializado en el análisis
-        financiero y proyecciones de ventas basadas en datos históricos.
+      <Title level={2}>Bienvenido de vuelta, {auth.user.nombre}</Title>
+      <Paragraph type="secondary" style={{ marginBottom: '2rem' }}>
+        Este es tu panel de control financiero. Revisa tus estadísticas y accede a los módulos.
       </Paragraph>
 
-      {/* --- Fila Principal de Tarjetas (Ahora 2 columnas) --- */}
-      <Row gutter={24} style={{ marginTop: '24px' }}>
-        
-        {/* --- Tarjeta de Análisis Financiero --- */}
-        <Col xs={24} lg={12} style={{ marginBottom: '24px' }}> {/* Ocupa la mitad en pantallas grandes */}
-          <Card
-            style={{ borderLeft: `5px solid ${azul}`, height: '100%', boxShadow: '0 2px 4px rgba(0, 0, 0, 0.3)' }} 
-            bordered={false}
-            title={<Space style={{ color: azul }}><CalculatorOutlined /> Análisis Financiero</Space>}
-            actions={[
-              <Link href="/analisis-ratios">
-                <Button style={darkButtonStyle} icon={<ArrowRightOutlined />}>Acceder al Módulo</Button>
-              </Link>
-            ]}
-          >
-            <Paragraph>
-              Genera informes de análisis financieros comparativos.
-            </Paragraph>
-            <Row gutter={16} style={{ marginBottom: '16px' }}>
-              <Col span={12}><Text><AreaChartOutlined /> Del Sector</Text></Col>
-              <Col span={12}><Text><LineChartOutlined /> Ratios Financieros</Text></Col>
-              <Col span={12}><Text><FundProjectionScreenOutlined /> Gráficos Comparativos</Text></Col>
-            </Row>
-            <List
-              header={<Text strong>Funcionalidades:</Text>}
-              dataSource={analisisFuncionalidades}
-              renderItem={(item) => <List.Item style={{padding: '6px 0', borderBlockEnd: 'none'}}>{item}</List.Item>}
-              size="small"
-            />
-          </Card>
+      <StatsZone stats={stats} />
+
+      <Row gutter={[32, 32]}>
+        <Col xs={24} lg={16} style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+          <DashboardCard
+            title="Análisis Financiero"
+            description="Calcula Ratios, Análisis Horizontal y compara con Benchmarks."
+            icon={<PieChartOutlined />}
+            color="#1890ff"
+            route="/analisis-ratios"
+            tag={ultimoAnalisis
+              ? `Última actividad: ${ultimoAnalisis.empresa_nombre} (Periodo ${ultimoAnalisis.periodo})`
+              : 'No hay análisis recientes.'}
+          />
+
+          <DashboardCard
+            title="Proyecciones"
+            description="Pronostica tus ventas futuras usando métodos estadísticos."
+            icon={<CalculatorOutlined />}
+            color="#52c41a"
+            route="/proyecciones"
+            chart={<Line
+              data={proyeccionData}
+              xField="mes"
+              yField="ventas"
+              height={60}
+              smooth
+              xAxis={false}
+              yAxis={false}
+              lineStyle={{ stroke: '#52c41a' }}
+            />}
+          />
+
+          <DashboardCard
+            title="Gestionar Empresas"
+            description="Administra las empresas, catálogos y estados financieros."
+            icon={<SettingOutlined />}
+            color="#fa8c16"
+            route="/empresas"
+            tag="Módulo de Administración"
+          />
+
+          <DashboardCard
+            title="Gestionar Tipos de Sector"
+            description="Define los sectores y benchmarks para comparaciones."
+            icon={<TagsOutlined />}
+            color="#eb2f96"
+            route="/tipos-empresa"
+            tag="Módulo de Administración"
+          />
         </Col>
 
-        {/* --- Tarjeta de Proyección de Ventas --- */}
-        <Col xs={24} lg={12} style={{ marginBottom: '24px' }}> {/* Ocupa la otra mitad */}
-          <Card
-            style={{ borderLeft: `5px solid ${verde}`, height: '100%', boxShadow: '0 2px 4px rgba(0, 0, 0, 0.3)' }}
-            bordered={false}
-            title={<Space style={{ color: verde }}><FundProjectionScreenOutlined /> Proyección de Ventas</Space>}
-            actions={[
-              <Link href="/proyecciones">
-                <Button style={darkButtonStyle} icon={<ArrowRightOutlined />}>Acceder al Módulo</Button>
-              </Link>
-            ]}
-          >
-            <Paragraph>
-              Realiza proyecciones de ventas a 12 meses.
-            </Paragraph>
-             <Row gutter={16} style={{ marginBottom: '16px' }}>
-                <Col span={12}><Text><LineChartOutlined /> Proyección 12 meses</Text></Col>
-                <Col span={12}><Text><FileExcelOutlined /> Importar Excel</Text></Col>
-                <Col span={12}><Text><ExperimentOutlined /> Mínimos Cuadrados</Text></Col>
-                <Col span={12}><Text><PercentageOutlined /> Incrementos %</Text></Col>
-            </Row>
-            <List
-              header={<Text strong>Métodos disponibles:</Text>}
-              dataSource={proyeccionMetodos}
-              renderItem={(item) => <List.Item style={{padding: '6px 0', borderBlockEnd: 'none'}}>{item}</List.Item>}
-              size="small"
-            />
-          </Card>
-        </Col>
-
-      </Row> 
-
-      {/* --- Segunda Fila para la Tarjeta de Empresas --- */}
-      <Row gutter={24}>
-          {/* --- Tarjeta de Empresas --- */}
-         <Col xs={24} lg={12}> {/* Ocupa la mitad o todo el ancho si quieres */}
-          <Card
-            style={{ borderLeft: `5px solid ${naranja}`, height: '100%', boxShadow: '0 2px 4px rgba(0, 0, 0, 0.3)' }}
-            bordered={false}
-            title={<Space style={{ color: naranja }}><BankOutlined /> Gestión de Empresas</Space>}
-            actions={[
-              <Link href={selectedEmpresaRoute}> 
-                <Button style={darkButtonStyle} icon={<ArrowRightOutlined />}>Acceder al Módulo</Button>
-              </Link>
-            ]}
-          >
-            <Paragraph>
-              Administra las empresas y sus tipos/sectores.
-            </Paragraph>
-            <Space direction="vertical" style={{width: '100%', marginBottom: '16px'}}>
-                <Text>Seleccionar vista para acceder:</Text>
-                {/*onChange ahora actualiza el estado, no navega directamente. */}
-                <Select 
-                    defaultValue={selectedEmpresaRoute} 
-                    style={{ width: '100%' }} 
-                    onChange={(value) => setSelectedEmpresaRoute(value)}
-                >
-                    <Option value="/empresas"><BankOutlined /> Empresas Individuales</Option>
-                    <Option value="/tipos-empresa"><AppstoreOutlined /> Tipos de Empresa</Option>
-                </Select>
-            </Space>
-             <List
-              header={<Text strong>Funcionalidades:</Text>}
-              dataSource={empresasFuncionalidades}
-              renderItem={(item) => <List.Item style={{padding: '6px 0', borderBlockEnd: 'none'}}>{item}</List.Item>}
-              size="small"
-            />
-          </Card>
+        <Col xs={24} lg={8}>
+          <ActivityZone actividad={actividadReciente} />
         </Col>
       </Row>
     </>
-  );
+  )
 }
 
-DashboardIndex.layout = page => <AppLayout>{page}</AppLayout>;
+DashboardIndex.layout = (page) => <AppLayout>{page}</AppLayout>

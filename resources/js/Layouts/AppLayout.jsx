@@ -230,7 +230,7 @@ export default function AppLayout({ children, title = 'ANF' }) {
           </Content>
 
           <Footer style={{ textAlign: 'center', marginTop: '24px' }}>
-            Sistema de Análisis Financiero ©{new Date().getFullYear()} — Equipo #
+            Sistema de Análisis Financiero ©{new Date().getFullYear()} — Equipo #8
           </Footer>
         </Layout>
       </Layout>

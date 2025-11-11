@@ -9,6 +9,7 @@ use App\Http\Controllers\BenchmarkSectorController;
 use App\Http\Controllers\AnalisisRatiosController;
 use App\Http\Controllers\CatalogoCuentaController;
 use App\Http\Controllers\AnalisisHorizontalController;
+use App\Http\Controllers\DashboardController; 
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', fn() => redirect('/login'));
@@ -20,7 +21,8 @@ Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth');
 // --- Rutas Protegidas ---
 Route::middleware('auth')->group(function () {
 
-    Route::get('/dashboard', fn() => inertia('Dashboard/Index'))->name('dashboard');
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
 
     // --- Proyecciones (todos los autenticados) ---
     Route::get('/proyecciones', [ProyeccionesController::class, 'index'])->name('proyecciones.index');
