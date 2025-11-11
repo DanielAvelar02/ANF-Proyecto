@@ -7,6 +7,7 @@ import { Button, Space, Table, Typography, Modal, Form, Input, InputNumber, Row,
 import { PlusOutlined, SettingOutlined, EyeOutlined, FileExcelTwoTone, DeleteOutlined, EditOutlined, DownloadOutlined } from '@ant-design/icons';
 import AppLayout from '@/Layouts/AppLayout';
 import SubidaExcel from '@/Components/Estados Financieros/SubidaExcel';
+import SugerenciasCatalogo from '@/Components/Estados Financieros/SugerenciasCatalogo'; 
 
 const { Title, Text: AntText } = Typography;
 // Tu importación de AntText es correcta
@@ -199,8 +200,19 @@ export default function EstadosFinancierosIndex({ empresa, estadosFinancieros, c
             </Card>
 
             {/* --- Modal para el Catálogo de Cuentas --- */}
-            {/* MODIFICADO: 'onCancel' ahora llama a la nueva función de cierre. */}
-            <Modal title="Catálogo de Cuentas" open={modalCatalogoVisible} onCancel={handleCerrarModalCatalogo} footer={null} width={800}>
+            {/* MODIFICADO: Añadimos el componente de sugerencias junto al título */}
+            <Modal 
+                title={
+                    <Space size={4} align="center">
+                        <Title level={4} style={{ margin: 0 }}>Catálogo de Cuentas</Title>
+                        <SugerenciasCatalogo /> 
+                    </Space>
+                } 
+                open={modalCatalogoVisible} 
+                onCancel={handleCerrarModalCatalogo} 
+                footer={null} 
+                width={800}
+            >
                 <Row gutter={16} style={{ marginTop: 24 }}>
                     <Col span={14}><Table columns={catalogoColumns} dataSource={catalogoDeCuentas} size="small" rowKey="id" /></Col>
                     <Col span={10}>
