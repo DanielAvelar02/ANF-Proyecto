@@ -22,6 +22,7 @@ class DatabaseSeeder extends Seeder
 
         $this->call([
             AnfInitSeeder::class,
+            RatioSeeder::class, // <-- LÍNEA AÑADIDA
         ]);
     }
 }

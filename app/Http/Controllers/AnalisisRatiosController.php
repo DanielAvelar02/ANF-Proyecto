@@ -4,6 +4,10 @@ namespace App\Http\Controllers;
 
 use Inertia\Inertia;
 use App\Models\Empresa;
+use App\Models\EstadoFinanciero;
+use App\Models\Ratio;
+use App\Models\ResultadoRatio;
+use App\Models\TipoEmpresa;      // 🛑 1. IMPORTAR TipoEmpresa
 use App\Services\RatioService;
 use App\Services\DataExtractorService;
 use Illuminate\Http\Request;
@@ -21,37 +25,51 @@ class AnalisisRatiosController extends Controller
         $this->dataExtractor = $dataExtractor;
     }
 
+    /**
+     * 🛑 CAMBIO: index()
+     * Ahora carga los periodos dinámicamente y también la lista de Tipos de Empresa.
+     */
     public function index(Request $request)
     {
         $empresas = Empresa::select('id', 'nombre')->get();
-        $periodos = [
-            Carbon::now()->year, 
-            Carbon::now()->subYear()->year, 
-            Carbon::now()->subYears(2)->year
-        ];
-        $ratioDefinitions = $this->getRatioDefinitions();
-
         $selectedEmpresaId = $empresas->first()->id ?? null;
-        $periodoA = Carbon::now()->year;
 
-        // Si no hay empresas, evitamos llamar a getAnalysisData con null
+        // Carga los periodos de la empresa seleccionada
+        $periodos = $this->fetchPeriodosDisponibles($selectedEmpresaId);
+        
+        // Carga todas las definiciones de ratios
+        $ratioDefinitions = Ratio::all()->map(fn($r) => [
+            'key' => $r->key,
+            'nombre' => $r->nombre_ratio,
+            'formula' => $r->formula,
+            'categoria' => $r->categoria
+        ]);
+        
+        // 🛑 2. Carga todos los Tipos de Empresa (Sectores)
+        $tiposEmpresa = TipoEmpresa::select('id', 'nombre')->get();
+
+        $periodoA = $periodos[0] ?? Carbon::now()->year;
+        $periodoB = $periodos[1] ?? Carbon::now()->year - 1;
+
         if (!$selectedEmpresaId) {
              return Inertia::render('AnalisisRatios/Index', [
                 'empresas' => $empresas,
                 'periodosDisponibles' => $periodos,
                 'ratioDefinitions' => $ratioDefinitions,
+                'tiposEmpresa' => $tiposEmpresa, // 🛑 3. Enviar al frontend
                 'initialRatiosHorizontal' => [],
                 'initialRatiosSectorial' => [],
                 'initialGraficos' => [],
             ]);
         }
         
-        $dataProps = $this->getAnalysisData($selectedEmpresaId, $periodoA);
+        $dataProps = $this->getAnalysisData($selectedEmpresaId, $periodoA, $periodoB);
 
         return Inertia::render('AnalisisRatios/Index', [
             'empresas' => $empresas,
             'periodosDisponibles' => $periodos,
             'ratioDefinitions' => $ratioDefinitions,
+            'tiposEmpresa' => $tiposEmpresa, // 🛑 3. Enviar al frontend
             'initialRatiosHorizontal' => $dataProps['ratiosHorizontal'],
             'initialRatiosSectorial' => $dataProps['ratiosSectorial'],
             'initialGraficos' => $dataProps['graficosEvolucion'],
@@ -62,54 +80,37 @@ class AnalisisRatiosController extends Controller
     {
         $request->validate([
             'empresa_id' => 'required|exists:empresas,id',
-            'periodo' => 'required|integer',
+            'periodo_a' => 'required|integer',
+            'periodo_b' => 'required|integer',
         ]);
         
         $empresaId = $request->integer('empresa_id');
-        $periodoA = $request->integer('periodo');
+        $periodoA = $request->integer('periodo_a');
+        $periodoB = $request->integer('periodo_b');
 
-        $dataProps = $this->getAnalysisData($empresaId, $periodoA);
+        $dataProps = $this->getAnalysisData($empresaId, $periodoA, $periodoB);
 
         return response()->json($dataProps);
     }
 
     /**
-     * Lógica principal (Usando el Extractor Corregido)
+     * 🛑 CAMBIO: getAnalysisData
+     * Ya no calcula 'ratiosSectorial', ahora lo devuelve vacío.
      */
-    protected function getAnalysisData(int $empresaId, int $periodoA): array
+    protected function getAnalysisData(int $empresaId, int $periodoA, int $periodoB): array
     {
-        $periodoB = $periodoA - 1;
-        $periodoC = $periodoA - 2;
-        
-        // 🛑🛑 CAMBIO 1: Añadimos el Período D (2022) 🛑🛑
-        $periodoD = $periodoA - 3;
+        // Años para la Pestaña 1 (Horizontal)
+        $ratiosA_horizontal = $this->obtenerOcalcularRatios($empresaId, $periodoA);
+        $ratiosB_horizontal = $this->obtenerOcalcularRatios($empresaId, $periodoB);
 
-        // 1. Extracción de Montos
-        $montosA = $this->dataExtractor->getMontosPorPeriodo($empresaId, $periodoA); // 2025
-        $montosB = $this->dataExtractor->getMontosPorPeriodo($empresaId, $periodoB); // 2024
-        $montosC = $this->dataExtractor->getMontosPorPeriodo($empresaId, $periodoC); // 2023
-        
-        // 🛑🛑 CAMBIO 2: Extraemos los montos de 2022 🛑🛑
-        $montosD = $this->dataExtractor->getMontosPorPeriodo($empresaId, $periodoD); // 2022
-        
-        
-        // 2. Cálculo de Promedios
-        $promediosA = $this->calcularPromedios($montosA, $montosB); // Promedio para 2025
-        $promediosB = $this->calcularPromedios($montosB, $montosC); // Promedio para 2024
-        
-        // 🛑🛑 CAMBIO 3: Calculamos los promedios para 2023 🛑🛑
-        $promediosC = $this->calcularPromedios($montosC, $montosD); // Promedio para 2023
+        // Años para la Pestaña 3 (Gráficos)
+        $periodoGraficoB = $periodoA - 1;
+        $periodoGraficoC = $periodoA - 2;
+        $ratiosB_grafico = $this->obtenerOcalcularRatios($empresaId, $periodoGraficoB);
+        $ratiosC_grafico = $this->obtenerOcalcularRatios($empresaId, $periodoGraficoC);
 
-
-        // 3. Cálculo de Ratios
-        $ratiosA = $this->ratioService->calcularTodosLosRatios($montosA, $promediosA); // Ratios 2025
-        $ratiosB = $this->ratioService->calcularTodosLosRatios($montosB, $promediosB); // Ratios 2024
-        
-        // 🛑🛑 CAMBIO 4: Calculamos los ratios para 2023 🛑🛑
-        $ratiosC = $this->ratioService->calcularTodosLosRatios($montosC, $promediosC); // Ratios 2023
-
-        // 4. Preparación de Datos (Estructura anidada)
-        $horizontalDataArray = $this->prepareHorizontalData($ratiosA, $ratiosB, $periodoA, $periodoB);
+        // Preparar datos
+        $horizontalDataArray = $this->prepareHorizontalData($ratiosA_horizontal, $ratiosB_horizontal, $periodoA, $periodoB);
 
         return [
             'ratiosHorizontal' => [
@@ -117,22 +118,87 @@ class AnalisisRatiosController extends Controller
                     $periodoA => $horizontalDataArray
                 ]
             ],
-            'ratiosSectorial' => $this->prepareSectorialData($ratiosA),
-            
-            // 🛑🛑 CAMBIO 5: Pasamos los 3 años de ratios reales a la función de gráficos 🛑🛑
-            'graficosEvolucion' => $this->prepareGraficosData($ratiosA, $ratiosB, $ratiosC, $periodoA, $periodoB, $periodoC),
+            // 🛑 4. 'ratiosSectorial' AHORA ESTÁ VACÍO. Se cargará por su propia API.
+            'ratiosSectorial' => [],
+            'graficosEvolucion' => $this->prepareGraficosData($ratiosA_horizontal, $ratiosB_grafico, $ratiosC_grafico, $periodoA, $periodoGraficoB, $periodoGraficoC),
         ];
     }
+
+    // ... (obtenerOcalcularRatios, calcularYAlmacenarRatios, recalcularRatios, calcularPromedios no cambian) ...
     
-    /**
-     * Calcula los promedios de Activo, Cuentas por Cobrar/Pagar, usando dos periodos.
-     * @param array $montosActual Montos del periodo A (ej: 2025)
-     * @param array $montosAnterior Montos del periodo B (ej: 2024)
-     * @return array Los promedios calculados.
-     */
+    protected function obtenerOcalcularRatios(int $empresaId, int $periodo): array
+    {
+        $estadoFinanciero = EstadoFinanciero::where('empresa_id', $empresaId)
+                            ->whereYear('periodo', $periodo)
+                            ->first();
+
+        if (!$estadoFinanciero) {
+            return [];
+        }
+
+        $resultadosGuardados = ResultadoRatio::where('estado_financiero_id', $estadoFinanciero->id)
+                                ->with('ratio')
+                                ->get();
+        
+        if ($resultadosGuardados->isNotEmpty()) {
+            return $resultadosGuardados->map(function ($res) {
+                return [
+                    'key' => $res->ratio->key,
+                    'nombre' => $res->ratio->nombre_ratio,
+                    'formula' => $res->ratio->formula,
+                    'valor' => (float) $res->valor_calculado,
+                ];
+            })->toArray();
+        }
+
+        return $this->calcularYAlmacenarRatios($empresaId, $periodo, $estadoFinanciero);
+    }
+
+    protected function calcularYAlmacenarRatios(int $empresaId, int $periodo, EstadoFinanciero $estadoFinanciero): array
+    {
+        $montosActual = $this->dataExtractor->getMontosPorPeriodo($empresaId, $periodo);
+        $montosAnterior = $this->dataExtractor->getMontosPorPeriodo($empresaId, $periodo - 1);
+
+        $promedios = $this->calcularPromedios($montosActual, $montosAnterior);
+        $ratiosCalculados = $this->ratioService->calcularTodosLosRatios($montosActual, $promedios);
+
+        $ratioDefinitions = Ratio::all();
+        $datosParaGuardar = [];
+
+        foreach ($ratiosCalculados as $ratio) {
+            $definicion = $ratioDefinitions->firstWhere('key', $ratio['key']);
+            if ($definicion) {
+                $datosParaGuardar[] = [
+                    'ratio_id' => $definicion->id,
+                    'estado_financiero_id' => $estadoFinanciero->id,
+                    'valor_calculado' => $ratio['valor'],
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+            }
+        }
+
+        if (!empty($datosParaGuardar)) {
+            ResultadoRatio::insert($datosParaGuardar);
+        }
+
+        return $ratiosCalculados;
+    }
+
+    public function recalcularRatios(Request $request)
+    {
+        $request->validate([
+            'empresa_id' => 'required|exists:empresas,id',
+        ]);
+
+        $estadoIds = EstadoFinanciero::where('empresa_id', $request->empresa_id)->pluck('id');
+        ResultadoRatio::whereIn('estado_financiero_id', $estadoIds)->delete();
+
+        return redirect()->route('analisis-ratios.index');
+    }
+
     protected function calcularPromedios(array $montosActual, array $montosAnterior): array
     {
-        // Esta función ya es correcta
         $keys = ['activoTotal', 'cuentasPorCobrar', 'cuentasPorPagar', 'activoFijoNeto'];
         $promedios = [];
         
@@ -146,20 +212,18 @@ class AnalisisRatiosController extends Controller
                 $promedios[$key] = ($montoA + $montoB) / 2;
             }
         }
-        
         return $promedios;
     }
 
-    /**
-     * Prepara los datos para la tabla de análisis horizontal (Pestaña 1)
-     */
     protected function prepareHorizontalData(array $ratiosA, array $ratiosB, int $periodoA, int $periodoB): array
     {
         $data = [];
         $benchmarkRatios = $this->getBenchmarkRatios(); 
+        $menorEsMejorKeys = ['4', '6', '9'];
 
         foreach ($ratiosA as $i => $ratioA) {
-            $ratioB = $ratiosB[$i] ?? ['valor' => 0.0];
+            $ratioB = collect($ratiosB)->firstWhere('key', $ratioA['key']) ?? ['valor' => 0.0];
+            
             $valorA = round($ratioA['valor'], 3);
             $valorB = round($ratioB['valor'], 3);
             $variacion = ($valorB != 0) ? (($valorA - $valorB) / abs($valorB)) * 100 : null;
@@ -167,37 +231,38 @@ class AnalisisRatiosController extends Controller
             $benchmark = collect($benchmarkRatios)->firstWhere('key', $ratioA['key']);
             $valorSector = $benchmark['valor_sector'] ?? 0.0;
 
+            $cumple = 'N/A';
+            if ($valorSector != 0) {
+                if (in_array($ratioA['key'], $menorEsMejorKeys)) {
+                    $cumple = ($valorA <= $valorSector) ? 'Cumple' : 'No Cumple';
+                } else {
+                    $cumple = ($valorA >= $valorSector) ? 'Cumple' : 'No Cumple';
+                }
+            }
+
             $data[] = [
                 'key' => $ratioA['key'], 'nombre' => $ratioA['nombre'], 'formula' => $ratioA['formula'],
                 'valor_A' => $valorA, 'valor_B' => $valorB,
                 'variacion' => is_null($variacion) ? null : round($variacion, 2),
                 'tendencia' => $variacion <=> 0, 'periodoA' => $periodoA, 'periodoB' => $periodoB,
                 'ratioSector' => $valorSector,
+                'benchmarkResultado' => $cumple,
             ];
         }
         return $data;
     }
 
-    protected function prepareSectorialData(array $ratiosA): array
+    // 🛑 5. prepareSectorialData() YA NO ES NECESARIO AQUÍ.
+    protected function prepareSectorialData(int $empresaId, int $periodo): array
     {
-        $benchmark = $this->getBenchmarkRatios();
-        $data = [];
-
-        foreach ($ratiosA as $i => $ratioA) {
-            $valorA = round($ratioA['valor'], 3);
-            $data[$ratioA['key']][] = [ 'empresaId' => 1, 'nombre' => 'Empresa Actual (Simulación)', 'valor' => $valorA];
-        }
-        return $data;
+         return []; // Ya no se calcula aquí
     }
     
-    /**
-     * 🛑🛑 CAMBIO 6: Función de gráficos actualizada 🛑🛑
-     * Ahora acepta $ratiosC y usa los 3 años de datos reales.
-     */
+    // ... (prepareGraficosData, getRatioDefinitions, getBenchmarkRatios no cambian) ...
+
     protected function prepareGraficosData(array $ratiosA, array $ratiosB, array $ratiosC, int $periodoA, int $periodoB, int $periodoC): array
     {
         $ratiosEvolution = [];
-        // Nombres de los ratios que SÍ existen en las nuevas definiciones
         $graficableRatios = [
             'Razón Circulante', 
             'Grado de Endeudamiento', 
@@ -209,70 +274,115 @@ class AnalisisRatiosController extends Controller
         foreach ($graficableRatios as $ratioNombre) {
             $targetRatioA = collect($ratiosA)->firstWhere('nombre', $ratioNombre);
             $targetRatioB = collect($ratiosB)->firstWhere('nombre', $ratioNombre);
-            
-            // 🛑🛑 CAMBIO 7: Buscamos el ratio real de 2023 🛑🛑
             $targetRatioC = collect($ratiosC)->firstWhere('nombre', $ratioNombre);
             
             $valorA = $targetRatioA['valor'] ?? 0.0;
             $valorB = $targetRatioB['valor'] ?? 0.0;
-            
-            // 🛑🛑 CAMBIO 8: Usamos el valor real en lugar de la simulación 🛑🛑
             $valorC = $targetRatioC['valor'] ?? 0.0; 
             
             $ratiosEvolution[$ratioNombre] = [
-                ['anio' => $periodoC, 'valor' => round($valorC, 2)], // 2023
-                ['anio' => $periodoB, 'valor' => round($valorB, 2)], // 2024
-                ['anio' => $periodoA, 'valor' => round($valorA, 2)], // 2025
+                ['anio' => $periodoC, 'valor' => round($valorC, 2)], 
+                ['anio' => $periodoB, 'valor' => round($valorB, 2)], 
+                ['anio' => $periodoA, 'valor' => round($valorA, 2)], 
             ];
         }
         return $ratiosEvolution;
     }
-
-    /**
-     * Definiciones de Ratios (Sin cambios)
-     */
+    
     protected function getRatioDefinitions(): array
     {
-        return [
-            ['key' => '1', 'nombre' => 'Razón Circulante', 
-             'formula' => 'Activos Corrientes / Pasivos Corrientes'],
-            ['key' => '2', 'nombre' => 'Capital de Trabajo a Activos Totales', 
-             'formula' => '(Activo Cte. - Pasivo Cte.) / Activos Totales'],
-            ['key' => '3', 'nombre' => 'Rotación Cuentas por Cobrar', 
-             'formula' => 'Ventas Netas / Cuentas por Cobrar Promedio'],
-            ['key' => '4', 'nombre' => 'Periodo Medio de Cobro (días)', 
-             'formula' => '(Prom. Cuentas Cobrar * 360) / Ventas Netas'],
-            ['key' => '5', 'nombre' => 'Rotación Cuentas por Pagar', 
-             'formula' => 'Compras / Cuentas por Pagar Promedio'],
-            ['key' => '6', 'nombre' => 'Periodo Medio de Pago (días)', 
-             'formula' => '(Prom. Cuentas Pagar * 360) / Compras'],
-            ['key' => '7', 'nombre' => 'Rotación de Activos Totales', 
-             'formula' => 'Ventas Netas / Activo Total Promedio'],
-            ['key' => '8', 'nombre' => 'Rotación de Activos Fijos', 
-             'formula' => 'Ventas Netas / Activo Fijo Neto Promedio'],
-            ['key' => '9', 'nombre' => 'Grado de Endeudamiento', 
-             'formula' => 'Pasivo Total / Activo Total'],
-            ['key' => '10', 'nombre' => 'Grado de Propiedad', 
-             'formula' => 'Patrimonio / Activo Total'],
-        ];
+        $ratiosDB = Ratio::all()->map(fn($r) => [
+            'key' => $r->key,
+            'nombre' => $r->nombre_ratio,
+            'formula' => $r->formula,
+        ]);
+        
+        if ($ratiosDB->isNotEmpty()) {
+            return $ratiosDB->toArray();
+        }
+        return [];
     }
     
-    /**
-     * Benchmarks (Sin cambios)
-     */
     protected function getBenchmarkRatios(): array
     {
         return [
-            ['key' => '1', 'valor_sector' => 1.5], // Razón Circulante
-            ['key' => '2', 'valor_sector' => 0.4], // Capital de Trabajo (NUEVO)
-            ['key' => '3', 'valor_sector' => 7.0], // Rot. Cuentas Cobrar
-            ['key' => '4', 'valor_sector' => 51.4], // Periodo Cobro
-            ['key' => '5', 'valor_sector' => 5.0], // Rot. Cuentas Pagar
-            ['key' => '6', 'valor_sector' => 72.0], // Periodo Pago
-            ['key' => '7', 'valor_sector' => 1.2], // Rot. Activos Totales
-            ['key' => '8', 'valor_sector' => 2.5], // Rot. Activos Fijos
-            ['key' => '9', 'valor_sector' => 0.6], // Endeudamiento
-            ['key' => '10', 'valor_sector' => 0.4], // Grado Propiedad (NUEVO)
+            ['key' => '1', 'valor_sector' => 1.5],
+            ['key' => '2', 'valor_sector' => 0.4],
+            ['key' => '3', 'valor_sector' => 7.0],
+            ['key' => '4', 'valor_sector' => 51.4],
+            ['key' => '5', 'valor_sector' => 5.0],
+            ['key' => '6', 'valor_sector' => 72.0],
+            ['key' => '7', 'valor_sector' => 1.2],
+            ['key' => '8', 'valor_sector' => 2.5],
+            ['key' => '9', 'valor_sector' => 0.6],
+            ['key' => '10', 'valor_sector' => 0.4],
         ];
+    }
+    
+
+    // --- FUNCIONES API (AÑADIDAS AL FINAL) ---
+
+    public function getPeriodosPorEmpresa(Request $request, Empresa $empresa)
+    {
+        $periodos = $this->fetchPeriodosDisponibles($empresa->id);
+        return response()->json($periodos);
+    }
+
+    private function fetchPeriodosDisponibles(?int $empresaId): Collection
+    {
+        if (!$empresaId) {
+            return collect();
+        }
+
+        return EstadoFinanciero::where('empresa_id', $empresaId)
+                ->selectRaw('YEAR(periodo) as anio')
+                ->distinct()
+                ->orderBy('anio', 'desc')
+                ->pluck('anio');
+    }
+
+    /**
+     * 🛑 6. NUEVA FUNCIÓN API PARA LA PESTAÑA 2
+     * Devuelve los datos de ratios para un sector y período específicos.
+     */
+    public function getComparativoSectorial(Request $request)
+    {
+        $request->validate([
+            'tipo_empresa_id' => 'required|exists:tipo_empresas,id',
+            'periodo' => 'required|integer',
+        ]);
+
+        $tipoEmpresaId = $request->tipo_empresa_id;
+        $periodo = $request->periodo;
+
+        // 1. Encontrar todas las empresas de ESE MISMO sector
+        $empresasDelSectorIds = Empresa::where('tipo_empresa_id', $tipoEmpresaId)->pluck('id');
+
+        // 2. Encontrar los IDs de los estados financieros para ese sector Y ese período
+        $estadoIds = EstadoFinanciero::whereIn('empresa_id', $empresasDelSectorIds)
+                        ->whereYear('periodo', $periodo)
+                        ->pluck('id');
+
+        // 3. Obtener TODOS los resultados de ratios para esos estados
+        $resultadosSector = ResultadoRatio::whereIn('estado_financiero_id', $estadoIds)
+                            ->with('ratio', 'estadoFinanciero.empresa') // Carga relaciones
+                            ->get();
+
+        // 4. Agrupar los resultados por 'ratio_key' (para el dropdown del frontend)
+        $datosAgrupados = [];
+        foreach ($resultadosSector as $resultado) {
+            if (!$resultado->ratio || !$resultado->estadoFinanciero || !$resultado->estadoFinanciero->empresa) {
+                continue; 
+            }
+            
+            $ratioKey = $resultado->ratio->key;
+            $datosAgrupados[$ratioKey][] = [
+                'empresaId' => $resultado->estadoFinanciero->empresa_id,
+                'nombre' => $resultado->estadoFinanciero->empresa->nombre,
+                'valor' => (float) $resultado->valor_calculado,
+            ];
+        }
+
+        return response()->json($datosAgrupados);
     }
 }

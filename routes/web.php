@@ -44,9 +44,18 @@ Route::middleware('auth')->group(function () {
     // 1. Ruta para la carga inicial de la página
     Route::get('/analisis-ratios', [AnalisisRatiosController::class, 'index'])->name('analisis-ratios.index');
 
-    // 2. 🚨 RUTA API FALTANTE (Esta es la corrección clave) 🚨
-    //    Esta ruta es la que llama el frontend (axios) para actualizar los datos.
+    // 2. Ruta API para Pestaña 1 (Horizontal)
     Route::get('/api/analisis-ratios/data', [AnalisisRatiosController::class, 'getAnalysisDataApi'])->name('api.analisis.ratios.data');
+
+    // 3. Ruta para forzar el recálculo de ratios
+    Route::post('/analisis-ratios/recalcular', [AnalisisRatiosController::class, 'recalcularRatios'])->name('analisis-ratios.recalcular');
+
+    // 4. Ruta API para obtener los periodos/años de una empresa específica
+    Route::get('/api/empresas/{empresa}/periodos', [AnalisisRatiosController::class, 'getPeriodosPorEmpresa'])->name('api.empresas.periodos');
+
+    // 5. 🛑 RUTA NUEVA AÑADIDA 🛑
+    // Para la Pestaña 2 (Análisis Comparativo Sectorial)
+    Route::get('/api/analisis-ratios/comparativo-sectorial', [AnalisisRatiosController::class, 'getComparativoSectorial'])->name('api.analisis.comparativo-sectorial');
 
 
     // Rutas Análisis Horizontal
