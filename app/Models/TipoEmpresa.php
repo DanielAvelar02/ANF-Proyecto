@@ -26,4 +26,9 @@ class TipoEmpresa extends Model
     {
         return $this->hasMany(Empresa::class);
     }
+
+    public function benchmarks()
+    {
+        return $this->hasMany(BenchmarkSector::class);
+    }
 }

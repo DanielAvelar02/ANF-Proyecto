@@ -76,9 +76,9 @@ export default function AnalisisRatiosIndex({
     
     if (empresas.length === 0 || ratioDefinitions.length === 0) {
         return (
-            <AppLayout>
+           
                 <Alert message="Error de Configuración" description="No se encontraron empresas o definiciones de ratios." type="error" showIcon />
-            </AppLayout>
+            
         );
     }
 
