@@ -15,7 +15,7 @@ return new class extends Migration
     {
         Schema::create('detalle_estados', function (Blueprint $table) {
             $table->id();
-            $table->decimal('monto', 10, 2);
+            $table->decimal('monto', 15, 2);
             $table->foreignId('estado_financiero_id')->constrained('estado_financieros')->cascadeOnDelete();
             $table->foreignId('catalogo_cuenta_id')->constrained('catalogo_cuentas')->cascadeOnDelete();
 

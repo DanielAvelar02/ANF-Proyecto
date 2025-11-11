@@ -34,6 +34,9 @@ export default function TiposEmpresaIndex({ tiposDeEmpresa }) {
     const [modalVisible, setModalVisible] = useState(false);
     const [registroActual, setRegistroActual] = useState(null);
     const [benchmarkModalVisible, setBenchmarkModalVisible] = useState(false);
+    
+    // 👈 CAMBIO: Estado de carga para el modal de benchmarks
+    const [benchmarkLoading, setBenchmarkLoading] = useState(false);
 
     // 👇 modal context-aware (elimina warning de Modal estático)
     const [modal, modalContextHolder] = Modal.useModal();
@@ -89,10 +92,7 @@ export default function TiposEmpresaIndex({ tiposDeEmpresa }) {
     const mkDeleteContent = (n) => {
         if (Number(n) > 0) {
             const plural = n === 1 ? 'empresa asociada' : 'empresas asociadas';
-            // Si tu política es RESTRICT (recomendada):
             return `Este tipo tiene ${n} ${plural}. Estas empresas se eliminaran definitivamente.`;
-            // Si usas CASCADE, cambia la línea de arriba por:
-            // return `Este tipo tiene ${n} ${plural}. Al continuar, se eliminarán también esas empresas.`;
         }
         return 'No hay empresas asociadas. Esta acción es permanente.';
     };
@@ -112,7 +112,6 @@ export default function TiposEmpresaIndex({ tiposDeEmpresa }) {
                         message.success(`"${registro.nombre}" fue eliminado.`);
                     },
                     onError: () => {
-                        // Si hay FK RESTRICT y existen empresas, caerá aquí.
                         message.error(`No se pudo eliminar "${registro.nombre}". Verifica empresas asociadas.`);
                     },
                     preserveScroll: true,
@@ -121,17 +120,36 @@ export default function TiposEmpresaIndex({ tiposDeEmpresa }) {
         });
     };
 
+    
     const abrirModalBenchmarks = (registro) => {
         setRegistroActual(registro);
-        benchmarkForm.resetFields();
+        benchmarkForm.resetFields(); // Limpia campos anteriores
         setBenchmarkModalVisible(true);
+        
     };
 
     const handleGuardarBenchmarks = () => {
-        const values = benchmarkForm.getFieldsValue();
-        console.log('Guardando benchmarks:', values);
-        message.success(`Benchmarks para "${registroActual?.nombre}" guardados (simulado).`);
-        setBenchmarkModalVisible(false);
+        benchmarkForm.validateFields().then(values => {
+            // 'values' ya tendrá el formato: {"Razón de Liquidez...": 0.55, ...}
+            
+            setBenchmarkLoading(true); // Inicia el guardado
+
+            router.post(`/tipos-empresa/${registroActual.id}/benchmarks`, values, {
+                onSuccess: () => {
+                    message.success(`Benchmarks para "${registroActual?.nombre}" guardados.`);
+                    setBenchmarkModalVisible(false);
+                    setBenchmarkLoading(false); // Termina el guardado
+                },
+                onError: (errors) => {
+                    console.error("Errores al guardar:", errors);
+                    // Muestra el error de DB si el controlador lo envía
+                    const errorMsg = errors.db || 'Error al guardar. Revise los datos.';
+                    message.error(errorMsg);
+                    setBenchmarkLoading(false); // Termina el guardado (en error)
+                },
+                preserveScroll: true,
+            });
+        });
     };
 
     const columns = [
@@ -151,7 +169,6 @@ export default function TiposEmpresaIndex({ tiposDeEmpresa }) {
                 ];
 
                 const onMenuClick = ({ key }) => {
-                    if (key === 'gestionar') return abrirModalBenchmarks(record);
                     if (key === 'editar') return abrirModalParaEditar(record);
                     if (key === 'eliminar') return handleEliminar(record);
                 };
@@ -185,7 +202,7 @@ export default function TiposEmpresaIndex({ tiposDeEmpresa }) {
 
     return (
         <>
-            {/* Título de la página y breadcrumb */}
+            
             <title>ANF - Tipos empresas</title>
             <Head title="Gestión de Tipos de Empresa" />
 
@@ -219,11 +236,18 @@ export default function TiposEmpresaIndex({ tiposDeEmpresa }) {
                 <Modal
                     title={<>Definir Benchmarks para <Text type="success">{registroActual?.nombre}</Text></>}
                     open={benchmarkModalVisible}
-                    onCancel={() => setBenchmarkModalVisible(false)}
+                    
+                    onCancel={() => {
+                        if (!benchmarkLoading) {
+                            setBenchmarkModalVisible(false);
+                        }
+                    }}
                     onOk={handleGuardarBenchmarks}
                     width={800}
                     okText="Guardar Benchmarks"
                     cancelText="Cancelar"
+                  
+                    confirmLoading={benchmarkLoading}
                 >
                     <Form
                         form={benchmarkForm}
@@ -232,8 +256,10 @@ export default function TiposEmpresaIndex({ tiposDeEmpresa }) {
                     >
                         <Text>Asigne el valor de benchmark para cada ratio en este sector.</Text>
                         <Divider />
+                        
+                    
                         {listaDeRatios.map((ratio, idx) => (
-                            <Form.Item key={idx} label={ratio} name={`ratio_${idx}`}>
+                            <Form.Item key={idx} label={ratio} name={ratio}>
                                 <InputNumber style={{ width: '100%' }} placeholder="Ej: 0.55" />
                             </Form.Item>
                         ))}

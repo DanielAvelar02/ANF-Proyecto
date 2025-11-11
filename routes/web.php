@@ -5,7 +5,8 @@ use App\Http\Controllers\ProyeccionesController;
 use App\Http\Controllers\TipoEmpresaController;
 use App\Http\Controllers\EmpresaController;
 use App\Http\Controllers\EstadoFinancieroController;
-use App\Http\Controllers\AnalisisRatiosController;
+use App\Http\Controllers\BenchmarkSectorController;
+use App\Http\Controllers\AnalisisRatiosController; // Asegúrate de que este 'use' esté
 use App\Http\Controllers\CatalogoCuentaController;
 use App\Http\Controllers\AnalisisHorizontalController;
 use Illuminate\Support\Facades\Route;
@@ -113,6 +114,13 @@ Route::middleware('auth')->group(function () {
     // Para la Pestaña 2 (Análisis Comparativo Sectorial)
     Route::get('/api/analisis-ratios/comparativo-sectorial', [AnalisisRatiosController::class, 'getComparativoSectorial'])->name('api.analisis.comparativo-sectorial');
 
+    // Rutas Benchmark Sector
+Route::get('/tipos-empresa/{tipo_empresa}/benchmarks', [BenchmarkSectorController::class, 'index'])
+     ->name('tipos-empresa.benchmarks.index');
+
+// POST: Guardar (crear/actualizar) los benchmarks para un TipoEmpresa
+Route::post('/tipos-empresa/{tipo_empresa}/benchmarks', [BenchmarkSectorController::class, 'store'])
+     ->name('tipos-empresa.benchmarks.store');
 
     // Rutas Análisis Horizontal
     Route::get('/analisis-horizontal', [AnalisisHorizontalController::class, 'index'])
